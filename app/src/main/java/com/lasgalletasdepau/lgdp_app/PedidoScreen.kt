@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -24,17 +25,23 @@ import java.util.Date
 import java.util.Locale
 
 // Estructuras de datos para el menú y el carrito
-data class ProductoCatalogo(val nombre: String, val precio: Double, val categoria: String)
-data class ElementoCarrito(val producto: String, val cantidad: Int, val precioUnitario: Double)
+data class ProductoCatalogo(val nombre: String, val precio: Double, val categoria: String, val stock: Int)
+data class ElementoCarrito(val producto: String, var cantidad: Int, val precioUnitario: Double)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PedidoScreen() {
+fun PedidoScreen(onBackToSalon: () -> Unit = {}) {
     // 1. CONTROL DE LA PESTAÑA PRINCIPAL (0: Menú de Productos, 1: Ver Orden)
     var pestanaActiva by remember { mutableStateOf(0) }
-    val titulosPestanas = listOf("Menú de Productos 📋", "Ver Orden (2) 🛒")
 
-    // Datos automáticos de tu propuesta
+    // Estado para controlar el Método de Pago seleccionado
+    var metodoPagoSeleccionado by remember { mutableStateOf("Efectivo 💵") }
+    val metodosPago = listOf("Efectivo 💵", "Yape/Plin 📱", "Izipay 💳")
+
+    // Diálogo de seguridad
+    var mostrarConfirmarEnvio by remember { mutableStateOf(false) }
+
+    // Datos automáticos de la comanda
     val fechaHoraActual = remember {
         SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault()).format(Date())
     }
@@ -43,40 +50,52 @@ fun PedidoScreen() {
 
     val subCategorias = listOf("Galletas 🍪", "Cafés ☕", "Bebidas Frías 🥤", "Tortas 🍰")
 
-    // Productos simulados en el catálogo
+    // Catálogo inicial de productos
     val productosMenu = remember {
         listOf(
-            ProductoCatalogo("Galleta Chispas Clásica", 4.50, "Galletas 🍪"),
-            ProductoCatalogo("Galleta Red Velvet", 5.00, "Galletas 🍪"),
-            ProductoCatalogo("Café Espresso", 5.50, "Cafés ☕"),
-            ProductoCatalogo("Café Cappuccino", 7.50, "Cafés ☕"),
-            ProductoCatalogo("Cheesecake de Fresa", 8.50, "Tortas 🍰")
+            ProductoCatalogo("Galleta Chispas Clásica", 4.50, "Galletas 🍪", stock = 15),
+            ProductoCatalogo("Galleta Red Velvet", 5.00, "Galletas 🍪", stock = 8),
+            ProductoCatalogo("Café Espresso", 5.50, "Cafés ☕", stock = 50),
+            ProductoCatalogo("Café Cappuccino", 7.50, "Cafés ☕", stock = 30),
+            ProductoCatalogo("Cheesecake de Fresa", 8.50, "Tortas 🍰", stock = 4)
         )
     }
 
-    // Productos que ya están agregados al carrito (Tu ejemplo)
-    val productosEnCarrito = remember {
-        listOf(
-            ElementoCarrito("Galleta Chispas Clásica", 2, 4.50),
-            ElementoCarrito("Galleta Red Velvet", 1, 5.00)
-        )
-    }
+    // MAPA DE ESTADO ACTIVO PARA EL CARRITO (Une la interfaz con las acciones de agregar/quitar)
+    val carritoState = remember { mutableStateMapOf<String, Int>() }
 
+    // Filtrado e indicadores de la pestaña
     val productosFiltrados = productosMenu.filter { it.categoria == subCategorias[subCategoriaSeleccionada] }
-    val totalAcumulado = productosEnCarrito.sumOf { it.cantidad * it.precioUnitario }
+    val cantidadItemsEnCarrito = carritoState.values.sum()
+    val titulosPestanas = listOf("Menú de Productos 📋", "Ver Orden ($cantidadItemsEnCarrito) 🛒")
+
+    // Calcular el total acumulado en base a lo que realmente hay en el carrito
+    val totalAcumulado = productosMenu.sumOf { producto ->
+        val cantidad = carritoState[producto.nombre] ?: 0
+        cantidad * producto.precio // Al ser Double, Kotlin detecta automáticamente sumOf para Doubles
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Registrar Pedido", fontWeight = FontWeight.Bold, color = Color.White) },
+                navigationIcon = {
+                    // BOTÓN VOLVER AL SALÓN EN LA BARRA SUPERIOR
+                    IconButton(onClick = onBackToSalon) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Regresar al Salón",
+                            tint = Color.White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
             )
         },
         floatingActionButton = {
-            // El botón de confirmar solo se muestra si estamos revisando la orden
-            if (pestanaActiva == 1) {
+            if (pestanaActiva == 1 && cantidadItemsEnCarrito > 0) {
                 FloatingActionButton(
-                    onClick = { /* Lógica para guardar el pedido */ },
+                    onClick = { mostrarConfirmarEnvio = true },
                     containerColor = Color(0xFF10B981),
                     contentColor = Color.White
                 ) {
@@ -95,7 +114,7 @@ fun PedidoScreen() {
                 .padding(innerPadding)
                 .background(Color(0xFFF8FAFC))
         ) {
-            // 2. BARRA DE PESTAÑAS PRINCIPALES (Menú vs Ver Orden)
+            // Tab de navegación interna
             TabRow(
                 selectedTabIndex = pestanaActiva,
                 containerColor = Color(0xFF1E233D),
@@ -110,13 +129,10 @@ fun PedidoScreen() {
                 }
             }
 
-            // 3. CONTROL DE FLUJO: Dependiendo de la pestaña activa, mostramos una vista u otra
             if (pestanaActiva == 0) {
                 // --- VISTA 1: MENÚ DE PRODUCTOS ---
-                // Cabecera fija con datos de atención
                 CabeceraInformacion(mozo = "Jherson 🧑‍🍳", mesa = "3 🪑", cliente = "Jonathan 👤", fecha = fechaHoraActual)
 
-                // Subcategorías deslizables
                 ScrollableTabRow(
                     selectedTabIndex = subCategoriaSeleccionada,
                     containerColor = Color(0xFF2D3748),
@@ -132,10 +148,28 @@ fun PedidoScreen() {
                     }
                 }
 
-                // Lista de productos del catálogo
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(productosFiltrados) { producto ->
-                        FilaProductoCatalogo(producto = producto)
+                        val cantidadActual = carritoState[producto.nombre] ?: 0
+                        FilaProductoCatalogo(
+                            producto = producto,
+                            cantidad = cantidadActual,
+                            onAumentar = {
+                                if (cantidadActual < producto.stock) {
+                                    carritoState[producto.nombre] = cantidadActual + 1
+                                }
+                            },
+                            onRestar = {
+                                if (cantidadActual > 0) {
+                                    val nuevaCantidad = cantidadActual - 1
+                                    if (nuevaCantidad == 0) {
+                                        carritoState.remove(producto.nombre)
+                                    } else {
+                                        carritoState[producto.nombre] = nuevaCantidad
+                                    }
+                                }
+                            }
+                        )
                         HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp)
                     }
                 }
@@ -161,32 +195,43 @@ fun PedidoScreen() {
                                     modifier = Modifier.padding(bottom = 12.dp)
                                 )
 
-                                // Lista los productos añadidos en tu ejemplo
-                                productosEnCarrito.forEach { item ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = "${item.cantidad} x ${item.producto}",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color(0xFF334155)
-                                        )
-                                        Text(
-                                            text = String.format("S/. %.2f", item.cantidad * item.precioUnitario),
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF1E233D)
-                                        )
+                                // Mostrar solo los productos agregados
+                                productosMenu.forEach { producto ->
+                                    val cantidad = carritoState[producto.nombre] ?: 0
+                                    if (cantidad > 0) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = "$cantidad x ${producto.nombre}",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(0xFF334155)
+                                            )
+                                            Text(
+                                                text = String.format("S/. %.2f", cantidad * producto.precio),
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF1E233D)
+                                            )
+                                        }
                                     }
+                                }
+
+                                if (cantidadItemsEnCarrito == 0) {
+                                    Text(
+                                        text = "El carrito está vacío. Agrega productos desde el menú.",
+                                        fontSize = 14.sp,
+                                        color = Color.Gray,
+                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    )
                                 }
 
                                 Spacer(modifier = Modifier.height(12.dp))
                                 HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
                                 Spacer(modifier = Modifier.height(12.dp))
 
-                                // Tu campo de Notas sugerido
                                 OutlinedTextField(
                                     value = notasCocina,
                                     onValueChange = { notasCocina = it },
@@ -197,7 +242,45 @@ fun PedidoScreen() {
 
                                 Spacer(modifier = Modifier.height(16.dp))
 
-                                // Total Acumulado
+                                Text(
+                                    text = "Método de Pago Sugerido:",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E233D)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    metodosPago.forEach { metodo ->
+                                        val seleccionado = metodoPagoSeleccionado == metodo
+                                        FilterChip(
+                                            selected = seleccionado,
+                                            onClick = { metodoPagoSeleccionado = metodo },
+                                            label = { Text(metodo, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = Color(0xFF1E233D),
+                                                selectedLabelColor = Color.White,
+                                                containerColor = Color.White,
+                                                labelColor = Color(0xFF334155)
+                                            ),
+                                            border = FilterChipDefaults.filterChipBorder(
+                                                selected = seleccionado,
+                                                enabled = true,
+                                                borderColor = Color.LightGray,
+                                                selectedBorderColor = Color(0xFF1E233D),
+                                                borderWidth = 1.dp,
+                                                selectedBorderWidth = 1.5.dp
+                                            )
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+                                HorizontalDivider(color = Color.LightGray, thickness = 0.5.dp)
+                                Spacer(modifier = Modifier.height(16.dp))
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -212,6 +295,50 @@ fun PedidoScreen() {
                 }
             }
         }
+    }
+
+    // --- DIÁLOGO DE CONFIRMACIÓN DE ENVÍO A COCINA ---
+    if (mostrarConfirmarEnvio) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmarEnvio = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = Color.White,
+            title = {
+                Text(
+                    text = "¿Confirmar y enviar orden? ☕",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E233D)
+                )
+            },
+            text = {
+                Text(
+                    text = "El pedido por un total de S/. ${String.format("%.2f", totalAcumulado)} se registrará en el sistema y se enviará la comanda al área de preparación.",
+                    fontSize = 14.sp,
+                    color = Color(0xFF475569)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarConfirmarEnvio = false
+                        onBackToSalon() // Cambia el estado en el MainContainerScreen a 0 (Salón)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Enviar a Cocina", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { mostrarConfirmarEnvio = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Gray)
+                ) {
+                    Text("Revisar más", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        )
     }
 }
 
@@ -239,22 +366,53 @@ fun CabeceraInformacion(mozo: String, mesa: String, cliente: String, fecha: Stri
 }
 
 @Composable
-fun FilaProductoCatalogo(producto: ProductoCatalogo) {
+fun FilaProductoCatalogo(
+    producto: ProductoCatalogo,
+    cantidad: Int,
+    onAumentar: () -> Unit,
+    onRestar: () -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
             Text(text = producto.nombre, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
-            Text(text = String.format("S/. %.2f", producto.precio), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(text = String.format("S/. %.2f", producto.precio), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+
+                Text(
+                    text = "Stock: ${producto.stock}",
+                    fontSize = 12.sp,
+                    color = if (producto.stock <= 5) Color(0xFFEF4444) else Color(0xFF10B981),
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            IconButton(onClick = {}, modifier = Modifier.size(32.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFF1F5F9))) {
+            IconButton(
+                onClick = onRestar,
+                modifier = Modifier.size(32.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFF1F5F9)),
+                enabled = cantidad > 0
+            ) {
                 Icon(Icons.Default.Remove, contentDescription = "Menos", modifier = Modifier.size(16.dp))
             }
-            Text(text = "0", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            IconButton(onClick = {}, modifier = Modifier.size(32.dp), colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF1E233D), contentColor = Color.White)) {
+            Text(text = "$cantidad", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            IconButton(
+                onClick = onAumentar,
+                modifier = Modifier.size(32.dp),
+                colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF1E233D), contentColor = Color.White),
+                enabled = cantidad < producto.stock
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Más", modifier = Modifier.size(16.dp))
             }
         }
