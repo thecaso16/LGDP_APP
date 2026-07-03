@@ -9,7 +9,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PointOfSale // Icono ideal para representar la caja/cuadre
+import androidx.compose.material.icons.filled.LocalMall // Icono ideal para representar pedidos para llevar / bolsa
+import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +33,8 @@ data class Mesa(
 fun SalonScreen(
     onIrAPedido: () -> Unit,
     onIrADetalleMesa: () -> Unit,
-    onIrACierreCaja: () -> Unit // <-- 1. Añadimos el nuevo evento de navegación
+    onIrACierreCaja: () -> Unit,
+    onIrAPedidoParaLlevar: () -> Unit // <-- Nuevos requerimientos: Evento para llevar
 ) {
     val mesas = remember {
         listOf(
@@ -54,7 +56,7 @@ fun SalonScreen(
             TopAppBar(
                 title = { Text("Salón de Mesas 🪑", fontWeight = FontWeight.Bold, color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D)),
-                actions = { // <-- 2. Añadimos el botón en la barra superior derecha
+                actions = {
                     IconButton(onClick = onIrACierreCaja) {
                         Icon(
                             imageVector = Icons.Default.PointOfSale,
@@ -64,6 +66,23 @@ fun SalonScreen(
                     }
                 }
             )
+        },
+        // <-- Añadimos el botón flotante en la parte inferior derecha
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onIrAPedidoParaLlevar,
+                containerColor = Color(0xFF10B981), // Color verde amigable
+                contentColor = Color.White,
+                elevation = FloatingActionButtonDefaults.elevation(8.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.LocalMall,
+                    contentDescription = "Pedido para Llevar"
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Para Llevar 🛍️", fontWeight = FontWeight.Bold)
+            }
         }
     ) { innerPadding ->
         Column(
@@ -74,7 +93,7 @@ fun SalonScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Seleccione una mesa para iniciar atención o ver consumo:",
+                text = "Seleccione una mesa o use el botón inferior para llevar:",
                 fontSize = 14.sp,
                 color = Color(0xFF64748B),
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -230,5 +249,10 @@ fun ItemMesa(mesa: Mesa, onClickMesa: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun SalonScreenPreview() {
-    SalonScreen(onIrAPedido = { }, onIrADetalleMesa = { }, onIrACierreCaja = { })
+    SalonScreen(
+        onIrAPedido = { },
+        onIrADetalleMesa = { },
+        onIrACierreCaja = { },
+        onIrAPedidoParaLlevar = { } // 👈 Actualizado también el Preview para evitar errores de compilación
+    )
 }
