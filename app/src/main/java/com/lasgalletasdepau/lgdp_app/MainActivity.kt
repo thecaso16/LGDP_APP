@@ -19,7 +19,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     // Llamamos a tu contenedor principal para que controle las pantallas
-                    AdminContainerScreen()
+                    MainContainerScreen()
                 }
             }
         }

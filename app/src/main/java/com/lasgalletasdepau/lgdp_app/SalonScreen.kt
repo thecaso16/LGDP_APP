@@ -230,5 +230,5 @@ fun ItemMesa(mesa: Mesa, onClickMesa: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun SalonScreenPreview() {
-    SalonScreen(onIrAPedido = { }, onIrADetalleMesa = { })
+    SalonScreen(onIrAPedido = { }, onIrADetalleMesa = { }, onIrACierreCaja = { })
 }
