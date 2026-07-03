@@ -1,50 +1,83 @@
-package com.lasgalletasdepau.lgdp_app
+package com.lasgalletasdepau.lgdp_app.ui.login
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lasgalletasdepau.lgdp_app.R
 
 @Composable
-fun LoginScreen() {
-    var usuario by remember { mutableStateOf("") }
+fun LoginScreen(
+    viewModel: LoginViewModel = viewModel(),
+    onNavigateToAdmin: () -> Unit,
+    onNavigateToTrabajador: () -> Unit
+) {
+    var correo by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
 
-    // Un Box permite superponer elementos (Tarjeta encima de la Imagen)
+    val context = LocalContext.current
+    // Escuchamos de forma reactiva el estado del LoginViewModel
+    val state by viewModel.loginState.collectAsState()
+
+    // Manejo de eventos / efectos cuando cambia el estado del Login
+    LaunchedEffect(state) {
+        when (state) {
+            is LoginState.Success -> {
+                val rol = (state as LoginState.Success).rol
+                Toast.makeText(context, "¡Ingreso exitoso! Rol: $rol", Toast.LENGTH_SHORT).show()
+
+                // Enrutamiento según el rol guardado en Firestore
+                if (rol.equals("Administrador", ignoreCase = true)) {
+                    onNavigateToAdmin()
+                } else {
+                    onNavigateToTrabajador()
+                }
+                viewModel.resetearEstado()
+            }
+            is LoginState.Error -> {
+                val mensajeError = (state as LoginState.Error).mensaje
+                Toast.makeText(context, mensajeError, Toast.LENGTH_LONG).show()
+                viewModel.resetearEstado()
+            }
+            else -> {}
+        }
+    }
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // 1. IMAGEN DE FONDO (El ambiente de la cafetería)
-        // NOTA: Para que funcione, guarda la foto de la cafetería en res/drawable con el nombre "bg_cafe"
+        // 1. IMAGEN DE FONDO
         Image(
             painter = painterResource(id = R.drawable.bg_cafe),
             contentDescription = "Fondo Cafetería",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
-            // Aplicamos un tinte oscuro idéntico al de la imagen de referencia para dar contraste
-            colorFilter = ColorFilter.tint(Color.Black.copy(alpha = 0.5f), androidx.compose.ui.graphics.BlendMode.Darken)
+            colorFilter = ColorFilter.tint(Color.Black.copy(alpha = 0.5f), BlendMode.Darken)
         )
 
-        // 2. TARJETA BLANCA FLOTANTE (Centrada en la pantalla)
+        // 2. TARJETA BLANCA FLOTANTE
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .align(Alignment.Center),
-            shape = RoundedCornerShape(32.dp), // Bordes bien curvados como en tu imagen
+            shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
@@ -54,17 +87,15 @@ fun LoginScreen() {
                     .padding(vertical = 36.dp, horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Título Principal con el emoji de galleta 🍪
                 Text(
                     text = "BIENVENIDO 🍪",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1A1A1A) // Negro suave
+                    color = Color(0xFF1A1A1A)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Subtítulo
                 Text(
                     text = "Inicia sesión en Las Galletas de Pau",
                     fontSize = 14.sp,
@@ -73,13 +104,14 @@ fun LoginScreen() {
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Campo: Nombre de Usuario
+                // Campo: Correo Electrónico (Firebase Auth requiere formato email)
                 OutlinedTextField(
-                    value = usuario,
-                    onValueChange = { usuario = it },
-                    label = { Text("Nombre de Usuario") },
+                    value = correo,
+                    onValueChange = { correo = it },
+                    label = { Text("Correo Electrónico") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
+                    enabled = state !is LoginState.Loading, // Deshabilitar si está cargando
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0xFF1E293B),
                         unfocusedBorderColor = Color.LightGray
@@ -96,6 +128,7 @@ fun LoginScreen() {
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
+                    enabled = state !is LoginState.Loading, // Deshabilitar si está cargando
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0xFF1E293B),
                         unfocusedBorderColor = Color.LightGray
@@ -104,22 +137,28 @@ fun LoginScreen() {
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Botón Azul Oscuro / Navy
-                Button(
-                    onClick = { /* Lógica de Firebase Auth */ },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    // Color institucional extraído de image_718c43.png (#1E233D aprox)
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                    shape = RoundedCornerShape(24.dp) // Totalmente redondeado
-                ) {
-                    Text(
-                        text = "Iniciar Sesión",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                // Muestra el indicador de progreso o el botón normal
+                if (state is LoginState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(40.dp),
+                        color = Color(0xFF1E233D)
                     )
+                } else {
+                    Button(
+                        onClick = { viewModel.iniciarSesion(correo, contrasena) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Text(
+                            text = "Iniciar Sesión",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }
@@ -129,5 +168,5 @@ fun LoginScreen() {
 @Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview() {
-    LoginScreen()
+    LoginScreen(onNavigateToAdmin = {}, onNavigateToTrabajador = {})
 }

@@ -58,6 +58,11 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.15.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
     // Librería para activar todos los iconos de Material Design (Carrito, Add, etc.)
     implementation("androidx.compose.material:material-icons-extended")
+    // Mapeo e integración de ViewModels con Jetpack Compose (Para solucionar viewModel())
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    // Componentes en tiempo de ejecución para Compose (Para solucionar collectAsState())
+    implementation("androidx.compose.runtime:runtime:1.7.6")
 }

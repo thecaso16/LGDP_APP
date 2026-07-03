@@ -7,10 +7,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lasgalletasdepau.lgdp_app.DetalleMesaScreen
 
 // 1. Modelo de datos para representar una comanda en el historial
 data class ComandaHistorial(
@@ -195,3 +198,7 @@ fun TarjetaComandaHistorial(comanda: ComandaHistorial) {
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun AdminHistorialScreenPreview() {AdminHistorialScreen()}

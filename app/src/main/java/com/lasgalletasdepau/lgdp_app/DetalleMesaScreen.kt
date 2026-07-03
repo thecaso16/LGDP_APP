@@ -227,3 +227,9 @@ fun DetalleMesaScreen(
         )
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun DetalleMesaScreenPreview() {
+    DetalleMesaScreen(onIrAPedidoEdicion = {}, onRegresarAlSalon = {})
+}
