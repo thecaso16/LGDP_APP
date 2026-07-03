@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PointOfSale // Icono ideal para representar la caja/cuadre
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +30,8 @@ data class Mesa(
 @Composable
 fun SalonScreen(
     onIrAPedido: () -> Unit,
-    onIrADetalleMesa: () -> Unit
+    onIrADetalleMesa: () -> Unit,
+    onIrACierreCaja: () -> Unit // <-- 1. Añadimos el nuevo evento de navegación
 ) {
     val mesas = remember {
         listOf(
@@ -49,7 +52,16 @@ fun SalonScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Salón de Mesas 🪑", fontWeight = FontWeight.Bold, color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D)),
+                actions = { // <-- 2. Añadimos el botón en la barra superior derecha
+                    IconButton(onClick = onIrACierreCaja) {
+                        Icon(
+                            imageVector = Icons.Default.PointOfSale,
+                            contentDescription = "Cierre de Caja",
+                            tint = Color.White
+                        )
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -78,7 +90,7 @@ fun SalonScreen(
                         mesa = mesa,
                         onClickMesa = {
                             if (mesa.estaOcupada) {
-                                onIrADetalleMesa() // Navega a DetalleMesaScreen
+                                onIrADetalleMesa()
                             } else {
                                 mesaSeleccionadaParaAbrir = mesa
                                 nombreClienteInput = ""
@@ -126,7 +138,7 @@ fun SalonScreen(
                 Button(
                     onClick = {
                         mostrarDialogoApertura = false
-                        onIrAPedido() // Abre la pantalla de PedidoScreen para agregar galletas
+                        onIrAPedido()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                     shape = RoundedCornerShape(10.dp)

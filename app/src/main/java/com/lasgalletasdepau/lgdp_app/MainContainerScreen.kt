@@ -24,15 +24,16 @@ fun MainContainerScreen() {
     // CONTROL DE NAVEGACIÓN
     // 0: Salón (SalonScreen)
     // 1: Pedido (PedidoScreen)
-    // 2: Detalle de Mesa (DetalleMesaScreen) -> Se abre de forma superpuesta
+    // 2: Detalle de Mesa (DetalleMesaScreen)
+    // 3: Cierre de Caja (CuadreCajaModernoScreen) -> ¡Nueva Pantalla Añadida!
     var pantallaActual by remember { mutableStateOf(0) } // Iniciamos en el Salón por defecto
 
     var pantallaMenuPrevia by remember { mutableStateOf(0) }
 
     Scaffold(
         bottomBar = {
-            // La barra inferior SOLO aparecerá cuando NO estemos en el Salón (pantallas 1 y 2)
-            // para ofrecer la salida rápida y limpia hacia el plano de mesas.
+            // La barra inferior aparecerá en cualquier pantalla que NO sea el Salón (1, 2 y 3)
+            // Esto le da al mozo el botón flotante inferior para volver al plano de mesas al instante.
             if (pantallaActual != 0) {
                 BottomAppBar(
                     containerColor = Color(0xFF1E233D), // Navy institucional
@@ -68,7 +69,8 @@ fun MainContainerScreen() {
             when (pantallaActual) {
                 0 -> SalonScreen(
                     onIrAPedido = { pantallaActual = 1 },
-                    onIrADetalleMesa = { pantallaActual = 2 }
+                    onIrADetalleMesa = { pantallaActual = 2 },
+                    onIrACierreCaja = { pantallaActual = 3 } // <-- Aquí quitamos los comentarios para activar la navegación
                 )
                 1 -> PedidoScreen(
                     onBackToSalon = { pantallaActual = 0 }
@@ -76,6 +78,9 @@ fun MainContainerScreen() {
                 2 -> DetalleMesaScreen(
                     onIrAPedidoEdicion = { pantallaActual = 1 },
                     onRegresarAlSalon = { pantallaActual = pantallaMenuPrevia }
+                )
+                3 -> CuadreCajaScreen(
+                    onRegresar = { pantallaActual = 0 }
                 )
             }
         }

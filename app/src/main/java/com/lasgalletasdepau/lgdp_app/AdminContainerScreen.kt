@@ -3,72 +3,97 @@ package com.lasgalletasdepau.lgdp_app
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Cookie
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.RestaurantMenu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.sp
-import com.tuapp.restaurante.ui.screens.AdminHistorialScreen
+import androidx.compose.ui.unit.dp
 
 @Composable
 fun AdminContainerScreen() {
-    // 0: Dashboard (Panel Principal)
-    // 1: Inventario / Productos
-    // 2: Historial de Ventas
+    // CONTROL DE NAVEGACIÓN INTERNA DEL ADMIN
+    // 0: Gestión de Personal (GestionUsuariosScreen)
+    // 1: Catálogo de Productos (GestionCatalogoScreen)
+    // 2: Inventario de Insumos (GestionInventarioScreen)
+    // 3: Reportes del Negocio (ReportesNegocioScreen)
+    // 4: Reportes de Trabajadores (ReportesTrabajadoresScreen)
     var pantallaActual by remember { mutableStateOf(2) }
 
     Scaffold(
         bottomBar = {
             NavigationBar(
-                containerColor = Color(0xFF1E233D), // Mantenemos el Navy institucional
+                containerColor = Color(0xFF1E233D), // Nuestro Navy institucional
                 contentColor = Color.White
             ) {
-                // Opción 1: Panel de Control (Dashboard)
                 NavigationBarItem(
                     selected = pantallaActual == 0,
                     onClick = { pantallaActual = 0 },
-                    icon = { Icon(Icons.Default.BarChart, contentDescription = "Dashboard") },
-                    label = { Text("Panel", fontSize = 12.sp) },
+                    icon = { Icon(Icons.Default.Badge, contentDescription = "Personal") },
+                    label = { Text("Personal") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E233D),
                         selectedTextColor = Color.White,
                         indicatorColor = Color.White,
-                        unselectedIconColor = Color.LightGray,
-                        unselectedTextColor = Color.LightGray
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )
                 )
-
-                // Opción 2: Gestión de Productos
                 NavigationBarItem(
                     selected = pantallaActual == 1,
                     onClick = { pantallaActual = 1 },
-                    icon = { Icon(Icons.Default.Cookie, contentDescription = "Productos") },
-                    label = { Text("Productos", fontSize = 12.sp) },
+                    icon = { Icon(Icons.Default.RestaurantMenu, contentDescription = "Catálogo") },
+                    label = { Text("Catálogo") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E233D),
                         selectedTextColor = Color.White,
                         indicatorColor = Color.White,
-                        unselectedIconColor = Color.LightGray,
-                        unselectedTextColor = Color.LightGray
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )
                 )
-
-                // Opción 3: Historial de Comandas
                 NavigationBarItem(
                     selected = pantallaActual == 2,
                     onClick = { pantallaActual = 2 },
-                    icon = { Icon(Icons.Default.History, contentDescription = "Historial") },
-                    label = { Text("Historial", fontSize = 12.sp) },
+                    icon = { Icon(Icons.Default.Inventory, contentDescription = "Insumos") },
+                    label = { Text("Insumos") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E233D),
                         selectedTextColor = Color.White,
                         indicatorColor = Color.White,
-                        unselectedIconColor = Color.LightGray,
-                        unselectedTextColor = Color.LightGray
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f)
+                    )
+                )
+                NavigationBarItem(
+                    selected = pantallaActual == 3,
+                    onClick = { pantallaActual = 3 },
+                    icon = { Icon(Icons.Default.Analytics, contentDescription = "Negocio") },
+                    label = { Text("Negocio") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF1E233D),
+                        selectedTextColor = Color.White,
+                        indicatorColor = Color.White,
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f)
+                    )
+                )
+                NavigationBarItem(
+                    selected = pantallaActual == 4,
+                    onClick = { pantallaActual = 4 },
+                    icon = { Icon(Icons.Default.Leaderboard, contentDescription = "Desempeño") },
+                    label = { Text("Desempeño") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF1E233D),
+                        selectedTextColor = Color.White,
+                        indicatorColor = Color.White,
+                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )
                 )
             }
@@ -80,9 +105,12 @@ fun AdminContainerScreen() {
                 .padding(innerPadding)
         ) {
             when (pantallaActual) {
-                0 -> AdminDashboardScreen()
-                1 -> AdminProductosScreen()
-                2 -> AdminHistorialScreen()
+                0 -> GestionUsuariosScreen()
+                1 -> GestionCatalogoScreen()
+                // AQUÍ CONECTAMOS TU NUEVA PANTALLA
+                2 -> GestionInventarioScreen()
+                3 -> ReportesNegocioScreen()
+                4 -> ReportesTrabajadoresScreen()
             }
         }
     }

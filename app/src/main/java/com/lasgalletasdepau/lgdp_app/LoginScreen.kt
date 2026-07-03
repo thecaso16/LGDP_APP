@@ -2,6 +2,7 @@ package com.lasgalletasdepau.lgdp_app
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -23,28 +24,25 @@ fun LoginScreen() {
     var usuario by remember { mutableStateOf("") }
     var contrasena by remember { mutableStateOf("") }
 
-    // Un Box permite superponer elementos (Tarjeta encima de la Imagen)
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // 1. IMAGEN DE FONDO (El ambiente de la cafetería)
-        // NOTA: Para que funcione, guarda la foto de la cafetería en res/drawable con el nombre "bg_cafe"
+        // 1. IMAGEN DE FONDO
         Image(
             painter = painterResource(id = R.drawable.bg_cafe),
             contentDescription = "Fondo Cafetería",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
-            // Aplicamos un tinte oscuro idéntico al de la imagen de referencia para dar contraste
             colorFilter = ColorFilter.tint(Color.Black.copy(alpha = 0.5f), androidx.compose.ui.graphics.BlendMode.Darken)
         )
 
-        // 2. TARJETA BLANCA FLOTANTE (Centrada en la pantalla)
+        // 2. TARJETA BLANCA FLOTANTE
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .align(Alignment.Center),
-            shape = RoundedCornerShape(32.dp), // Bordes bien curvados como en tu imagen
+            shape = RoundedCornerShape(32.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
@@ -54,17 +52,15 @@ fun LoginScreen() {
                     .padding(vertical = 36.dp, horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Título Principal con el emoji de galleta 🍪
                 Text(
                     text = "BIENVENIDO 🍪",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1A1A1A) // Negro suave
+                    color = Color(0xFF1A1A1A)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Subtítulo
                 Text(
                     text = "Inicia sesión en Las Galletas de Pau",
                     fontSize = 14.sp,
@@ -81,8 +77,10 @@ fun LoginScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF1E293B),
-                        unfocusedBorderColor = Color.LightGray
+                        focusedBorderColor = Color(0xFF1E233D),
+                        unfocusedBorderColor = Color.LightGray,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
 
@@ -97,12 +95,32 @@ fun LoginScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF1E293B),
-                        unfocusedBorderColor = Color.LightGray
+                        focusedBorderColor = Color(0xFF1E233D),
+                        unfocusedBorderColor = Color.LightGray,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     )
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // --- ENLACE: ¿OLVIDASTE TU CONTRASEÑA? ---
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterEnd // Lo empuja a la derecha de la tarjeta
+                ) {
+                    Text(
+                        text = "¿Olvidaste tu contraseña?",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF3B82F6), // Azul bonito de enlace intermitente
+                        modifier = Modifier.clickable {
+                            /* Lógica para restablecer contraseña en Firebase */
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Botón Azul Oscuro / Navy
                 Button(
@@ -110,9 +128,8 @@ fun LoginScreen() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
-                    // Color institucional extraído de image_718c43.png (#1E233D aprox)
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                    shape = RoundedCornerShape(24.dp) // Totalmente redondeado
+                    shape = RoundedCornerShape(24.dp)
                 ) {
                     Text(
                         text = "Iniciar Sesión",
