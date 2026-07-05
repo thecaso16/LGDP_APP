@@ -17,12 +17,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.AsyncImage
 import com.lasgalletasdepau.lgdp_app.data.local.entity.ProductoEntity
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoViewModel
 import java.text.SimpleDateFormat
@@ -33,6 +32,7 @@ import java.util.Locale
 @Composable
 fun PedidoScreen(
     mesaId: Int? = null,
+    pedidoId: String? = null,
     clienteNombre: String? = null,
     onBackToSalon: () -> Unit = {},
     viewModel: PedidoViewModel = viewModel()
@@ -52,9 +52,11 @@ fun PedidoScreen(
         }
     }
 
-    LaunchedEffect(mesaId) {
-        if (mesaId != null && carrito.isEmpty()) {
-            viewModel.cargarPedidoParaEdicion(mesaId = mesaId)
+    LaunchedEffect(mesaId, pedidoId) {
+        if (carrito.isEmpty()) {
+            if (pedidoId != null || mesaId != null) {
+                viewModel.cargarPedidoParaEdicion(mesaId = mesaId, pedidoId = pedidoId)
+            }
         }
     }
 
@@ -63,18 +65,16 @@ fun PedidoScreen(
     val cantidadItemsEnCarrito = carrito.values.sumOf { it.cantidad }
     val totalAcumulado = carrito.values.sumOf { it.cantidad * it.precioUnitario }
 
-    val titulosPestanas = listOf("Catálogo 📋", "Carrito ($cantidadItemsEnCarrito) 🛒")
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gestión de Pedidos", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text("Tomar Pedido 📋", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = {
                         viewModel.limpiarCarrito()
                         onBackToSalon()
                     }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
@@ -82,41 +82,43 @@ fun PedidoScreen(
         },
         floatingActionButton = {
             if (pestanaActiva == 1 && cantidadItemsEnCarrito > 0) {
-                FloatingActionButton(
+                ExtendedFloatingActionButton(
                     onClick = { viewModel.guardarPedido(mesaId, clienteNombre) { onBackToSalon() } },
                     containerColor = Color(0xFF10B981),
                     contentColor = Color.White
                 ) {
-                    Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Confirmar Orden", fontWeight = FontWeight.Bold)
-                    }
+                    Icon(Icons.Default.ShoppingCart, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Confirmar Orden", fontWeight = FontWeight.Bold)
                 }
             }
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).background(Color(0xFFF8FAFC))) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFFF8FAFC))
+        ) {
+            // TABS
             TabRow(selectedTabIndex = pestanaActiva, containerColor = Color(0xFF1E233D), contentColor = Color.White) {
-                titulosPestanas.forEachIndexed { index, titulo ->
-                    Tab(
-                        selected = pestanaActiva == index,
-                        onClick = { pestanaActiva = index },
-                        text = { Text(text = titulo, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
-                    )
-                }
+                Tab(selected = pestanaActiva == 0, onClick = { pestanaActiva = 0 }, text = { Text("Menú 📋") })
+                Tab(selected = pestanaActiva == 1, onClick = { pestanaActiva = 1 }, text = { Text("Carrito ($cantidadItemsEnCarrito) 🛒") })
             }
 
-            when (pestanaActiva) {
-                0 -> {
-                    // CATÁLOGO
-                    CabeceraInformacion(
-                        mozo = usuarioLogueado?.nombres ?: "...",
-                        mesa = mesaId?.toString() ?: "Llevar",
-                        cliente = clienteNombre ?: "Cliente",
-                        fecha = fechaHoraActual
-                    )
-                    if (categorias.isNotEmpty()) {
+            if (categorias.isEmpty()) {
+                // Estado de carga o vacío
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = Color(0xFF1E233D))
+                        Spacer(Modifier.height(16.dp))
+                        Text("Cargando Menú...", color = Color.Gray)
+                    }
+                }
+            } else {
+                when (pestanaActiva) {
+                    0 -> {
+                        // VISTA CATÁLOGO
                         ScrollableTabRow(
                             selectedTabIndex = categorias.indexOfFirst { it.id == categoriaSeleccionadaId }.coerceAtLeast(0),
                             containerColor = Color(0xFF2D3748),
@@ -131,65 +133,77 @@ fun PedidoScreen(
                                 )
                             }
                         }
-                    }
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(productosFiltrados) { producto ->
-                            FilaProductoCatalogo(
-                                producto = producto,
-                                cantidad = carrito[producto.productoId]?.cantidad ?: 0,
-                                onAumentar = { viewModel.agregarProducto(producto) },
-                                onRestar = { viewModel.quitarProducto(producto.productoId) }
-                            )
-                            HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp)
+
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            item {
+                                CabeceraInformacion(
+                                    mozo = usuarioLogueado?.nombres ?: "...",
+                                    mesa = mesaId?.toString() ?: "Llevar",
+                                    cliente = clienteNombre ?: "Cliente",
+                                    fecha = fechaHoraActual
+                                )
+                            }
+                            items(productosFiltrados) { producto ->
+                                FilaProductoCatalogo(
+                                    producto = producto,
+                                    cantidad = carrito[producto.productoId]?.cantidad ?: 0,
+                                    onAumentar = { viewModel.agregarProducto(producto) },
+                                    onRestar = { viewModel.quitarProducto(producto.productoId) }
+                                )
+                                HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp)
+                            }
                         }
                     }
-                }
-                1 -> {
-                    // CARRITO
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        item {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                border = BorderStroke(1.dp, Color.LightGray)
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text("Resumen de Orden 📋", fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    carrito.forEach { (_, det) ->
-                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("${det.cantidad}x ${det.nombreProducto}", fontSize = 14.sp, modifier = Modifier.weight(1f))
-                                            Text("S/ ${String.format("%.2f", det.cantidad * det.precioUnitario)}", fontWeight = FontWeight.Bold)
+                    1 -> {
+                        // VISTA CARRITO
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    border = BorderStroke(1.dp, Color.LightGray)
+                                ) {
+                                    Column(modifier = Modifier.padding(16.dp)) {
+                                        Text("Resumen de Orden 🍪", fontWeight = FontWeight.Bold)
+                                        Spacer(Modifier.height(16.dp))
+                                        
+                                        carrito.forEach { (_, det) ->
+                                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                Text("${det.cantidad}x ${det.nombreProducto}", modifier = Modifier.weight(1f))
+                                                Text("S/ ${String.format("%.2f", det.cantidad * det.precioUnitario)}", fontWeight = FontWeight.Bold)
+                                            }
+                                            Spacer(Modifier.height(8.dp))
                                         }
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                    }
-                                    if (carrito.isEmpty()) Text("El carrito está vacío", color = Color.Gray)
-                                    HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                                    Text("Notas del Pedido 📝", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    OutlinedTextField(
-                                        value = notasGlobales,
-                                        onValueChange = { viewModel.actualizarNotasGlobales(it) },
-                                        placeholder = { Text("Ej. Sin cubiertos, cliente tiene prisa...") },
-                                        modifier = Modifier.fillMaxWidth().height(90.dp),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("TOTAL:", fontWeight = FontWeight.Black)
-                                        Text("S/ ${String.format("%.2f", totalAcumulado)}", fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color(0xFF10B981))
+
+                                        if (carrito.isEmpty()) {
+                                            Text("El carrito está vacío.", color = Color.Gray, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                                        }
+
+                                        HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                                        
+                                        Text("Notas del Pedido 📝", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                                        OutlinedTextField(
+                                            value = notasGlobales,
+                                            onValueChange = { viewModel.actualizarNotasGlobales(it) },
+                                            placeholder = { Text("Ej. Sin azúcar, para las 5pm...") },
+                                            modifier = Modifier.fillMaxWidth().height(100.dp),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+
+                                        Spacer(Modifier.height(16.dp))
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("TOTAL:", fontWeight = FontWeight.Black, fontSize = 18.sp)
+                                            Text("S/ ${String.format("%.2f", totalAcumulado)}", fontWeight = FontWeight.Black, fontSize = 22.sp, color = Color(0xFF10B981))
+                                        }
                                     }
                                 }
                             }
-                        }
-                        // Espacio extra al final para que el FAB no tape el total
-                        item {
-                            Spacer(modifier = Modifier.height(80.dp))
+                            item { Spacer(Modifier.height(80.dp)) }
                         }
                     }
                 }
@@ -202,21 +216,16 @@ fun PedidoScreen(
 fun CabeceraInformacion(mozo: String, mesa: String, cliente: String, fecha: String) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(12.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "Mozo: $mozo 🧑‍🍳", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
-                Text(text = "Mesa: $mesa 🪑", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Mozo: $mozo", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Mesa: $mesa", fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "Cliente: $cliente 👤", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-            Spacer(modifier = Modifier.height(6.dp))
-            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(text = "Iniciado: $fecha", fontSize = 12.sp, color = Color.Gray)
+            Text("Cliente: $cliente", fontSize = 13.sp, color = Color.DarkGray)
+            Text("Fecha: $fecha", fontSize = 11.sp, color = Color.Gray)
         }
     }
 }
@@ -232,50 +241,70 @@ fun FilaProductoCatalogo(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-            Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.size(60.dp)) {
-                AsyncImage(
-                    model = producto.imagen,
-                    contentDescription = producto.nombre,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+        Column(Modifier.weight(1f)) {
+            Text(producto.nombre ?: "", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            if (!producto.descripcion.isNullOrBlank()) {
+                Text(
+                    producto.descripcion,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    maxLines = 2
                 )
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(text = producto.nombre ?: "", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E293B))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(text = String.format("S/. %.2f", producto.precio), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "S/ ${String.format("%.2f", producto.precio)}",
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E233D),
+                    fontSize = 14.sp
+                )
+                Spacer(Modifier.width(12.dp))
+                Surface(
+                    color = if (producto.stock > 0) Color(0xFFE2E8F0) else Color(0xFFFFEBEE),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
                     Text(
-                        text = "Stock: ${producto.stock}",
-                        fontSize = 12.sp,
-                        color = if (producto.stock <= 5) Color(0xFFEF4444) else Color(0xFF10B981),
-                        fontWeight = FontWeight.Medium
+                        "Stock: ${producto.stock}",
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (producto.stock > 0) Color(0xFF475569) else Color.Red
                     )
                 }
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(
                 onClick = onRestar,
-                modifier = Modifier.size(32.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFFF1F5F9)),
-                enabled = cantidad > 0
+                enabled = cantidad > 0,
+                modifier = Modifier.size(36.dp)
             ) {
-                Icon(Icons.Default.Remove, contentDescription = "Menos", modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.Remove,
+                    contentDescription = null,
+                    tint = if (cantidad > 0) Color.Red else Color.LightGray
+                )
             }
-            Text(text = "$cantidad", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "$cantidad",
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 8.dp),
+                fontSize = 16.sp
+            )
             IconButton(
                 onClick = onAumentar,
-                modifier = Modifier.size(32.dp),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = Color(0xFF1E233D), contentColor = Color.White),
-                enabled = cantidad < producto.stock
+                enabled = cantidad < producto.stock,
+                modifier = Modifier.size(36.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Más", modifier = Modifier.size(16.dp))
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    tint = if (cantidad < producto.stock) Color(0xFF10B981) else Color.LightGray
+                )
             }
         }
     }

@@ -193,13 +193,17 @@ class SyncManager(
 
             if (!snapshot.isEmpty) {
                 val doc = snapshot.documents[0]
+                // CORRECCIÓN: Usar nombres de argumentos para evitar errores posicionales
                 val sesion = CajaSesionEntity(
                     cajaId = doc.id,
-                    usuarioCajeroId = doc.getString("usuarioCajeroId") ?: "",
+                    usuarioCajeroId = doc.getString("usuarioCajeroId") ?: doc.getString("usuarioId") ?: "",
                     nombreCajero = doc.getString("usuarioCajeroNombre") ?: "Desconocido",
                     fechaApertura = doc.getTimestamp("fechaApertura")?.toDate()?.time ?: System.currentTimeMillis(),
                     montoApertura = doc.getDouble("montoApertura") ?: 0.0,
                     fechaCierre = null,
+                    egresos = 0.0,
+                    montoFisicoReal = 0.0,
+                    justificacion = null,
                     estado = "ABIERTA",
                     sincronizado = true
                 )

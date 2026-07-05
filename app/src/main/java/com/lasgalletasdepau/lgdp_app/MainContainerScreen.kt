@@ -162,11 +162,12 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                 4 -> ReportesTrabajadoresScreen(
                     onIrACierreCaja = { pantallaActual = 3 }
                 )
-////                5 -> PedidoScreen(
-////                    mesaId = mesaSeleccionadaId,
-////                    clienteNombre = clienteNombreSeleccionado,
-////                    onBackToSalon = { pantallaActual = 0 }
-//                )
+                5 -> PedidoScreen(
+                    mesaId = mesaSeleccionadaId,
+                    pedidoId = pedidoSeleccionadoId,
+                    clienteNombre = clienteNombreSeleccionado,
+                    onBackToSalon = { pantallaActual = 0 }
+                )
             }
         }
     }
