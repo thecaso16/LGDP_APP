@@ -1,6 +1,7 @@
 package com.lasgalletasdepau.lgdp_app.ui.pedidos
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
@@ -62,24 +63,40 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun tieneRolCajero(): Boolean {
-        val roles = RolUsuario.fromStringList(_usuarioLogueado.value?.rol)
+        val user = _usuarioLogueado.value ?: return false
+        val roles = RolUsuario.fromStringList(user.rol)
         return roles.contains(RolUsuario.CAJERO) || roles.contains(RolUsuario.ADMINISTRADOR)
     }
 
     fun abrirCaja() {
         val user = _usuarioLogueado.value ?: return
         val monto = montoApertura.value.toDoubleOrNull() ?: 0.0
+        
         viewModelScope.launch {
-            val nuevaSesion = CajaSesionEntity(
-                cajaId = UUID.randomUUID().toString(),
-                usuarioCajeroId = user.uid,
-                nombreCajero = "${user.nombres} ${user.apellidos}",
-                fechaApertura = System.currentTimeMillis(),
-                montoApertura = monto
-            )
-            appDao.abrirCajaLocal(nuevaSesion)
-            // Sincronizar apertura con Firebase (Opcional, pero recomendado)
-            subirSesionAFirebase(nuevaSesion)
+            try {
+                // Verificación extra en Firebase antes de abrir para evitar duplicados
+                val snapshot = firestore.collection("cierres_caja")
+                    .whereEqualTo("estado", "ABIERTA")
+                    .get().await()
+                
+                if (!snapshot.isEmpty) {
+                    Log.d("CajaViewModel", "Ya hay una caja abierta globalmente.")
+                    return@launch
+                }
+
+                val nuevaSesion = CajaSesionEntity(
+                    cajaId = UUID.randomUUID().toString(),
+                    usuarioCajeroId = user.uid,
+                    nombreCajero = "${user.nombres} ${user.apellidos}",
+                    fechaApertura = System.currentTimeMillis(),
+                    montoApertura = monto,
+                    estado = "ABIERTA"
+                )
+                appDao.abrirCajaLocal(nuevaSesion)
+                subirSesionAFirebase(nuevaSesion)
+            } catch (e: Exception) {
+                Log.e("CajaViewModel", "Error al abrir caja: ${e.message}")
+            }
         }
     }
 
@@ -108,7 +125,7 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
             "cajaId" to sesionCerrada.cajaId,
             "fechaApertura" to Timestamp(Date(sesionCerrada.fechaApertura)),
             "fechaCierre" to Timestamp(Date(sesionCerrada.fechaCierre!!)),
-            "usuarioCajeroId" to user.uid,
+            "usuarioCajeroId" to user.uid, // Campo clave para las reglas de Firebase
             "usuarioCajeroNombre" to sesionCerrada.nombreCajero,
             "montoApertura" to apert,
             "ingresosEfectivo" to efectivoSistema.value,
@@ -120,19 +137,21 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
             "esperadoFisico" to esperadoFisico,
             "diferencia" to diferencia,
             "justificacion" to (justificacion ?: ""),
-            "estado" to if (Math.abs(diferencia) < 0.01) "CUADRADO" else "DESCUADRADO"
+            "estado" to "CERRADA",
+            "resultadoBalance" to if (Math.abs(diferencia) < 0.01) "CUADRADO" else "DESCUADRADO"
         )
 
         return try {
             firestore.collection("cierres_caja").document(sesionCerrada.cajaId).set(cierreData).await()
-            appDao.actualizarCajaLocal(sesionCerrada.copy(sincronizado = true))
+            // Limpieza local forzada tras éxito en Firebase
+            appDao.limpiarSesionesLocales()
             
-            // Limpiar UI
             montoApertura.value = ""
             egresos.value = ""
             montoRealFisico.value = ""
             true
         } catch (e: Exception) {
+            Log.e("CajaViewModel", "Error al finalizar cierre: ${e.message}")
             false
         }
     }

@@ -67,8 +67,10 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
     val diferencia = montoRealDouble - esperadoFisico
 
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Gestión de Caja", fontWeight = FontWeight.ExtraBold, color = Color.White) },
@@ -233,7 +235,11 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
                             onClick = {
                                 coroutineScope.launch {
                                     val exito = viewModel.finalizarCierre(justificacionDescuadre)
-                                    if (exito) onRegresar()
+                                    if (exito) {
+                                        onRegresar()
+                                    } else {
+                                        snackbarHostState.showSnackbar("Error al cerrar caja. Verifica tus permisos de Firebase.")
+                                    }
                                 }
                             },
                             enabled = montoRealInput.isNotBlank() && (abs(diferencia) < 0.01 || justificacionDescuadre.isNotBlank()),
