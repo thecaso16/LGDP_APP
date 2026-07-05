@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lasgalletasdepau.lgdp_app.ui.pedidos.CajaViewModel
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoConDetalles
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.ReportesTrabajadoresViewModel
 import java.io.File
@@ -34,11 +35,13 @@ import java.util.*
 @Composable
 fun ReportesTrabajadoresScreen(
     onIrACierreCaja: () -> Unit,
-    viewModel: ReportesTrabajadoresViewModel = viewModel()
+    viewModel: ReportesTrabajadoresViewModel = viewModel(),
+    cajaViewModel: CajaViewModel = viewModel() // Necesitamos acceso al estado de caja
 ) {
     val context = LocalContext.current
     val historial by viewModel.historial.collectAsState()
     val usuario by viewModel.usuarioLogueado.collectAsState()
+    val cajaAbierta by cajaViewModel.cajaSesion.collectAsState()
 
     val locale = LocalConfiguration.current.locales[0]
     val sdf = remember(locale) { SimpleDateFormat("dd/MM/yyyy", locale) }
@@ -61,7 +64,9 @@ fun ReportesTrabajadoresScreen(
     }
 
     var pedidoSeleccionado by remember { mutableStateOf<PedidoConDetalles?>(null) }
-    val esCajero = viewModel.esCajeroOAdmin()
+    
+    // Un usuario puede exportar SOLO si es el cajero que abrió la caja actual
+    val esCajeroResponsable = usuario?.uid != null && usuario?.uid == cajaAbierta?.usuarioCajeroId
 
     // Cargar datos iniciales
     LaunchedEffect(usuario) {
@@ -119,8 +124,8 @@ fun ReportesTrabajadoresScreen(
             )
         },
         floatingActionButton = {
-            // Solo el cajero puede exportar el reporte
-            if (historial.isNotEmpty() && esCajero) {
+            // SOLO el cajero responsable puede ver el botón de exportar
+            if (historial.isNotEmpty() && esCajeroResponsable) {
                 ExtendedFloatingActionButton(
                     onClick = {
                         val csvData = viewModel.generarCsvData()

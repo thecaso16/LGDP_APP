@@ -14,5 +14,6 @@ data class CajaSesionEntity(
     val egresos: Double = 0.0,
     val montoFisicoReal: Double = 0.0,
     val justificacion: String? = null,
+    val estado: String = "ABIERTA", // "ABIERTA" o "CERRADA"
     val sincronizado: Boolean = false
 )

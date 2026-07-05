@@ -117,10 +117,10 @@ interface AppDao {
     suspend fun cerrarSesionLocal()
 
     // --- SESIONES DE CAJA ---
-    @Query("SELECT * FROM caja_sesiones WHERE fechaCierre IS NULL LIMIT 1")
+    @Query("SELECT * FROM caja_sesiones WHERE estado = 'ABIERTA' LIMIT 1")
     fun obtenerCajaAbierta(): Flow<CajaSesionEntity?>
 
-    @Query("SELECT * FROM caja_sesiones WHERE fechaCierre IS NULL LIMIT 1")
+    @Query("SELECT * FROM caja_sesiones WHERE estado = 'ABIERTA' LIMIT 1")
     suspend fun obtenerCajaAbiertaSync(): CajaSesionEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -128,4 +128,7 @@ interface AppDao {
 
     @Update
     suspend fun actualizarCajaLocal(sesion: CajaSesionEntity)
+
+    @Query("DELETE FROM caja_sesiones")
+    suspend fun limpiarSesionesLocales()
 }

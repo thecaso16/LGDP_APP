@@ -32,19 +32,17 @@ class SyncManager(
         }
     }
 
-    // Función principal que llamaremos cuando vuelva el internet
     suspend fun sincronizarTodo() {
         try {
             Log.d("SyncManager", "Iniciando sincronización bidireccional...")
-            // PRIMERO: Subir cambios locales (Pedidos, Stock y Mesas) para no perderlos al sobreescribir
             subirPedidosPendientes()
             subirActualizacionesDeStock()
             subirEstadoMesas()
 
-            // SEGUNDO: Descargar estado actual de la nube
             bajarMesasDeFirebase()
             bajarCategoriasDeFirebase()
             bajarProductosDeFirebase()
+            bajarCajaAbiertaDeFirebase()
             bajarPedidosActivosDeFirebase()
             Log.d("SyncManager", "Sincronización completada con éxito.")
         } catch (e: Exception) {
@@ -89,42 +87,18 @@ class SyncManager(
         }
     }
 
-    // --- 1. DESCARGAR DE LA NUBE A LOCAL (Download) ---
     private suspend fun bajarMesasDeFirebase() {
-        Log.d("SyncManager", "Bajando mesas de Firebase...")
-        // Lee la colección "mesas" de Firestore
         val snapshot = firestore.collection("mesas").get().await()
-        Log.d("SyncManager", "Se encontraron ${snapshot.size()} mesas en la nube.")
-        
         val mesasNube = snapshot.documents.mapNotNull { doc ->
             val id = doc.getLong("id")?.toInt() ?: return@mapNotNull null
             val numero = "Mesa ${id.toString().padStart(2, '0')}"
             val estadoString = doc.getString("estado") ?: "LIBRE"
             val cliente = doc.getString("clienteActivo")
+            val estadoEnum = try { EstadoMesa.valueOf(estadoString) } catch (e: Exception) { EstadoMesa.LIBRE }
 
-            // Convertimos el String de Firebase a nuestro Enum
-            val estadoEnum = try {
-                EstadoMesa.valueOf(estadoString)
-            } catch (e: Exception) {
-                EstadoMesa.LIBRE
-            }
-
-            MesaEntity(
-                id = id, 
-                numero = numero, 
-                estado = estadoEnum, 
-                clienteActivo = cliente,
-                sincronizado = true
-            )
+            MesaEntity(id = id, numero = numero, estado = estadoEnum, clienteActivo = cliente, sincronizado = true)
         }
-
-        // Si encontró mesas en la nube, las guarda/actualiza en SQLite
-        if (mesasNube.isNotEmpty()) {
-            Log.d("SyncManager", "Actualizando ${mesasNube.size} mesas en Room local.")
-            appDao.inicializarMesas(mesasNube)
-        } else {
-            Log.d("SyncManager", "No hay mesas en la nube para descargar.")
-        }
+        if (mesasNube.isNotEmpty()) appDao.inicializarMesas(mesasNube)
     }
 
     private suspend fun bajarCategoriasDeFirebase() {
@@ -132,9 +106,7 @@ class SyncManager(
         val categorias = snapshot.documents.map { doc ->
             CategoriaEntity(id = doc.id, nombre = doc.getString("nombre"))
         }
-        if (categorias.isNotEmpty()) {
-            appDao.insertarCategorias(categorias)
-        }
+        if (categorias.isNotEmpty()) appDao.insertarCategorias(categorias)
     }
 
     private suspend fun bajarProductosDeFirebase() {
@@ -154,9 +126,7 @@ class SyncManager(
                 operacionPendiente = null
             )
         }
-        if (productos.isNotEmpty()) {
-            appDao.insertarProductos(productos)
-        }
+        if (productos.isNotEmpty()) appDao.insertarProductos(productos)
     }
 
     private suspend fun bajarPedidosActivosDeFirebase() {
@@ -187,11 +157,11 @@ class SyncManager(
                         total = doc.getDouble("total") ?: 0.0,
                         usuarioId = doc.getString("usuarioId"),
                         notas = doc.getString("notas"),
+                        cajaId = doc.getString("cajaId"),
                         sincronizado = true
                     )
                     appDao.insertarPedido(pedido)
 
-                    // Bajar detalles del array "detalles" dentro del documento
                     val detallesNube = doc.get("detalles") as? List<Map<String, Any>>
                     if (detallesNube != null) {
                         val detallesEntities = detallesNube.map { map ->
@@ -201,7 +171,7 @@ class SyncManager(
                                 nombreProducto = map["nombreProducto"] as? String,
                                 cantidad = (map["cantidad"] as? Long)?.toInt() ?: 0,
                                 precioUnitario = (map["precioUnitario"] as? Number)?.toDouble() ?: 0.0,
-                                comentario = map["comentario"] as? String
+                                comentario = null
                             )
                         }
                         appDao.eliminarDetallesPorPedido(pedidoId)
@@ -214,19 +184,44 @@ class SyncManager(
         }
     }
 
+    private suspend fun bajarCajaAbiertaDeFirebase() {
+        try {
+            val snapshot = firestore.collection("cierres_caja")
+                .whereEqualTo("estado", "ABIERTA")
+                .limit(1)
+                .get().await()
+
+            if (!snapshot.isEmpty) {
+                val doc = snapshot.documents[0]
+                val sesion = CajaSesionEntity(
+                    cajaId = doc.id,
+                    usuarioCajeroId = doc.getString("usuarioCajeroId") ?: "",
+                    nombreCajero = doc.getString("usuarioCajeroNombre") ?: "Desconocido",
+                    fechaApertura = doc.getTimestamp("fechaApertura")?.toDate()?.time ?: System.currentTimeMillis(),
+                    montoApertura = doc.getDouble("montoApertura") ?: 0.0,
+                    fechaCierre = null,
+                    estado = "ABIERTA",
+                    sincronizado = true
+                )
+                appDao.limpiarSesionesLocales()
+                appDao.abrirCajaLocal(sesion)
+            } else {
+                appDao.limpiarSesionesLocales()
+            }
+        } catch (e: Exception) {
+            Log.e("SyncManager", "Error bajando caja: ${e.message}")
+        }
+    }
+
     suspend fun bajarHistorialRango(usuarioId: String, inicio: Long, fin: Long) {
         try {
-            Log.d("SyncManager", "Buscando historial en Firebase para $usuarioId...")
             val startTimestamp = Timestamp(Date(inicio))
             val endTimestamp = Timestamp(Date(fin))
 
             val snapshot = firestore.collection("pedidos")
-                .whereEqualTo("usuarioId", usuarioId)
                 .whereGreaterThanOrEqualTo("fecha", startTimestamp)
                 .whereLessThanOrEqualTo("fecha", endTimestamp)
                 .get().await()
-
-            Log.d("SyncManager", "Se encontraron ${snapshot.size()} registros históricos.")
 
             for (doc in snapshot.documents) {
                 val pedidoId = doc.id
@@ -245,6 +240,7 @@ class SyncManager(
                     total = doc.getDouble("total") ?: 0.0,
                     usuarioId = doc.getString("usuarioId"),
                     notas = doc.getString("notas"),
+                    cajaId = doc.getString("cajaId"),
                     sincronizado = true
                 )
                 appDao.insertarPedido(pedido)
@@ -270,15 +266,12 @@ class SyncManager(
         }
     }
 
-    // --- 2. SUBIR DE LOCAL A LA NUBE (Upload) ---
     private suspend fun subirPedidosPendientes() {
         val pedidosPendientes = appDao.obtenerPedidosPendientesDeSincronizar()
         if (pedidosPendientes.isEmpty()) return
 
         for (pedido in pedidosPendientes) {
             val pedidoRef = firestore.collection("pedidos").document(pedido.pedidoId)
-
-            // Obtener los detalles de Room para subirlos como Array
             val detallesEntities = appDao.obtenerDetallesPorPedido(pedido.pedidoId)
             val detallesArray = detallesEntities.map { det ->
                 hashMapOf(
@@ -301,6 +294,7 @@ class SyncManager(
                 "total" to pedido.total,
                 "usuarioId" to pedido.usuarioId,
                 "notas" to pedido.notas,
+                "cajaId" to pedido.cajaId,
                 "detalles" to detallesArray,
                 "sincronizado" to true
             )

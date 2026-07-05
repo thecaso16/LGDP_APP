@@ -40,8 +40,17 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
     }
 
     fun esCajeroOAdmin(): Boolean {
-        val roles = RolUsuario.fromStringList(_usuarioLogueado.value?.rol)
+        val user = _usuarioLogueado.value ?: return false
+        val roles = RolUsuario.fromStringList(user.rol)
         return roles.contains(RolUsuario.CAJERO) || roles.contains(RolUsuario.ADMINISTRADOR)
+    }
+
+    /**
+     * Verifica si el usuario actual es el cajero que abrió la caja actual.
+     */
+    fun esCajeroResponsable(cajeroIdEnCaja: String?): Boolean {
+        val user = _usuarioLogueado.value ?: return false
+        return user.uid == cajeroIdEnCaja
     }
 
     fun buscarPorRango(fechaInicioStr: String, fechaFinStr: String) {
@@ -70,7 +79,7 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
 
                 val verTodo = if (esCajeroOAdmin()) 1 else 0
 
-                // 1. Descargar historial de Firebase si es necesario
+                // 1. Descargar historial de Firebase (Traer pedidos de todos durante el turno si es cajero)
                 syncManager.bajarHistorialRango(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
 
                 // 2. Obtener de local
