@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 
 class DetalleMesaViewModel(application: Application) : AndroidViewModel(application) {
     private val appDao = AppDatabase.getDatabase(application).appDao()
+    private val syncManager = com.lasgalletasdepau.lgdp_app.data.remote.SyncManager.getInstance(application)
 
     private val _pedido = MutableStateFlow<PedidoEntity?>(null)
     val pedido: StateFlow<PedidoEntity?> = _pedido
@@ -21,7 +22,10 @@ class DetalleMesaViewModel(application: Application) : AndroidViewModel(applicat
     private val _detalles = MutableStateFlow<List<PedidoDetalleEntity>>(emptyList())
     val detalles: StateFlow<List<PedidoDetalleEntity>> = _detalles
 
+    private var currentMesaId: Int? = null
+
     fun cargarDatosMesa(mesaId: Int? = null, pedidoId: String? = null) {
+        currentMesaId = mesaId
         viewModelScope.launch {
             val pedidoActivo = if (pedidoId != null) {
                 appDao.obtenerPedidoPorId(pedidoId)
@@ -32,6 +36,8 @@ class DetalleMesaViewModel(application: Application) : AndroidViewModel(applicat
             _pedido.value = pedidoActivo
             if (pedidoActivo != null) {
                 _detalles.value = appDao.obtenerDetallesPorPedido(pedidoActivo.pedidoId)
+            } else {
+                _detalles.value = emptyList()
             }
         }
     }
@@ -39,17 +45,25 @@ class DetalleMesaViewModel(application: Application) : AndroidViewModel(applicat
     fun pagarPedido(metodo: MetodoPago, onCompletado: () -> Unit) {
         viewModelScope.launch {
             val p = _pedido.value ?: return@launch
-            appDao.finalizarVenta(p.pedidoId, metodo.name, p.mesaId)
+            appDao.finalizarVenta(p.pedidoId, metodo, p.mesaId)
+            syncManager.sincronizarTodo()
             onCompletado()
         }
     }
 
     fun cancelarPedido(onCompletado: () -> Unit) {
         viewModelScope.launch {
-            val p = _pedido.value ?: return@launch
-            // En un flujo real, podrías marcar como CANCELADO
-            appDao.actualizarEstadoPedido(p.pedidoId, "CANCELADO", "NINGUNO")
-            p.mesaId?.let { appDao.liberarMesa(it) }
+            val p = _pedido.value
+            if (p != null) {
+                // Si hay un pedido activo, lo anulamos (Estado CANCELADO)
+                appDao.anularPedido(p.pedidoId)
+                p.mesaId?.let { appDao.liberarMesa(it) }
+            } else {
+                // Si no hay pedido (caso congelado), liberamos la mesa directamente
+                currentMesaId?.let { appDao.liberarMesa(it) }
+            }
+            
+            syncManager.sincronizarTodo()
             onCompletado()
         }
     }

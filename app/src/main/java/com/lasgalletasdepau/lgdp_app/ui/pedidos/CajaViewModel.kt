@@ -3,6 +3,7 @@ package com.lasgalletasdepau.lgdp_app.ui.pedidos
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
 import com.lasgalletasdepau.lgdp_app.data.local.entity.UsuarioEntity
@@ -65,7 +66,7 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
         val diferencia = fisico - esperadoFisico
 
         val cierreData = hashMapOf(
-            "fecha" to System.currentTimeMillis(),
+            "fecha" to Timestamp(Date()),
             "usuarioId" to user.uid,
             "usuarioNombre" to "${user.nombres} ${user.apellidos}",
             "montoApertura" to apertura,
@@ -81,11 +82,20 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
             "estado" to if (Math.abs(diferencia) < 0.01) "CUADRADO" else "DESCUADRADO"
         )
 
-        return try {
+        val resultado = try {
             firestore.collection("cierres_caja").add(cierreData).await()
             true
         } catch (e: Exception) {
             false
         }
+
+        if (resultado) {
+            // LIMPIEZA ABSOLUTA DE DATOS
+            montoApertura.value = ""
+            egresos.value = ""
+            montoRealFisico.value = ""
+        }
+        
+        return resultado
     }
 }

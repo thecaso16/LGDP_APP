@@ -17,7 +17,7 @@ import com.lasgalletasdepau.lgdp_app.data.local.entity.*
         PedidoDetalleEntity::class,
         MesaEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(AppConverters::class)

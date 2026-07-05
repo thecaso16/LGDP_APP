@@ -9,5 +9,6 @@ data class MesaEntity(
     @PrimaryKey val id: Int,
     val numero: String,
     val estado: EstadoMesa,
-    val clienteActivo: String? = null
+    val clienteActivo: String? = null,
+    val sincronizado: Boolean = true
 )

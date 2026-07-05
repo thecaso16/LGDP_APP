@@ -10,14 +10,20 @@ interface AppDao {
     @Query("SELECT * FROM mesas")
     fun obtenerEstadoMesas(): Flow<List<MesaEntity>>
 
-    @Query("UPDATE mesas SET estado = :nuevoEstado WHERE id = :mesaId")
+    @Query("UPDATE mesas SET estado = :nuevoEstado, sincronizado = 0 WHERE id = :mesaId")
     suspend fun actualizarEstadoMesa(mesaId: Int, nuevoEstado: String)
 
-    @Query("UPDATE mesas SET estado = 'OCUPADA', clienteActivo = :cliente WHERE id = :mesaId")
+    @Query("UPDATE mesas SET estado = 'OCUPADA', clienteActivo = :cliente, sincronizado = 0 WHERE id = :mesaId")
     suspend fun marcarMesaOcupada(mesaId: Int, cliente: String)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inicializarMesas(mesas: List<MesaEntity>)
+
+    @Query("UPDATE mesas SET sincronizado = 1 WHERE id = :id")
+    suspend fun marcarMesaComoSincronizada(id: Int)
+
+    @Query("SELECT * FROM mesas WHERE sincronizado = 0")
+    suspend fun obtenerMesasNoSincronizadas(): List<MesaEntity>
 
     // --- CATEGORÍAS ---
     @Query("SELECT * FROM categorias")
@@ -58,11 +64,17 @@ interface AppDao {
     @Query("SELECT * FROM pedidos WHERE usuarioId = :usuarioId AND fecha >= :inicio AND fecha <= :fin ORDER BY fecha DESC")
     suspend fun obtenerPedidosPorFechaYUsuario(usuarioId: String, inicio: Long, fin: Long): List<PedidoEntity>
 
-    @Query("UPDATE mesas SET estado = 'LIBRE', clienteActivo = NULL WHERE id = :mesaId")
+    @Query("UPDATE mesas SET estado = 'LIBRE', clienteActivo = NULL, sincronizado = 0 WHERE id = :mesaId")
     suspend fun liberarMesa(mesaId: Int)
 
+    @Query("UPDATE pedidos SET estado = :nuevoEstado, metodoPago = :metodo, sincronizado = 0 WHERE pedidoId = :pedidoId")
+    suspend fun actualizarEstadoPedido(pedidoId: String, nuevoEstado: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago?)
+
+    @Query("UPDATE pedidos SET estado = 'CANCELADO', sincronizado = 0 WHERE pedidoId = :pedidoId")
+    suspend fun anularPedido(pedidoId: String)
+
     @Transaction
-    suspend fun finalizarVenta(pedidoId: String, metodo: String, mesaId: Int?) {
+    suspend fun finalizarVenta(pedidoId: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago, mesaId: Int?) {
         // 1. Actualizar Pedido
         actualizarEstadoPedido(pedidoId, "PAGADO", metodo)
         
@@ -77,9 +89,6 @@ interface AppDao {
         // 3. Liberar Mesa si aplica
         mesaId?.let { liberarMesa(it) }
     }
-
-    @Query("UPDATE pedidos SET estado = :nuevoEstado, metodoPago = :metodo, sincronizado = 0 WHERE pedidoId = :pedidoId")
-    suspend fun actualizarEstadoPedido(pedidoId: String, nuevoEstado: String, metodo: String)
 
     @Query("UPDATE productos SET stock = stock - :cantidad, sincronizado = 0 WHERE productoId = :id")
     suspend fun descontarStock(id: String, cantidad: Int)

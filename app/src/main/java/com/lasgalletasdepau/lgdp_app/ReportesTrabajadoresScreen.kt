@@ -1,7 +1,6 @@
 package com.lasgalletasdepau.lgdp_app
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -42,23 +41,63 @@ fun ReportesTrabajadoresScreen(
 
     val locale = LocalConfiguration.current.locales[0]
     val sdf = remember(locale) { SimpleDateFormat("dd/MM/yyyy", locale) }
-    val hoy = remember(sdf) { sdf.format(Date()) }
+    
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
-    var fechaInicio by remember { mutableStateOf(hoy) }
-    var fechaFin by remember { mutableStateOf(hoy) }
+    val datePickerStateStart = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis()
+    )
+    val datePickerStateEnd = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis()
+    )
+
+    var fechaInicioStr by remember { 
+        mutableStateOf(sdf.format(Date(datePickerStateStart.selectedDateMillis!!))) 
+    }
+    var fechaFinStr by remember { 
+        mutableStateOf(sdf.format(Date(datePickerStateEnd.selectedDateMillis!!))) 
+    }
 
     var pedidoSeleccionado by remember { mutableStateOf<PedidoConDetalles?>(null) }
 
-    // Cargar datos iniciales (pedidos de hoy)
+    // Cargar datos iniciales
     LaunchedEffect(usuario) {
         if (usuario != null) {
-            viewModel.buscarPorRango(fechaInicio, fechaFin)
+            viewModel.buscarPorRango(fechaInicioStr, fechaFinStr)
         }
     }
 
-    // Actualizar cada vez que se pulsa el botón de buscar
-    val onBuscar = {
-        viewModel.buscarPorRango(fechaInicio, fechaFin)
+    if (showStartDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerStateStart.selectedDateMillis?.let {
+                        fechaInicioStr = sdf.format(Date(it))
+                    }
+                    showStartDatePicker = false
+                }) { Text("Aceptar") }
+            }
+        ) {
+            DatePicker(state = datePickerStateStart)
+        }
+    }
+
+    if (showEndDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerStateEnd.selectedDateMillis?.let {
+                        fechaFinStr = sdf.format(Date(it))
+                    }
+                    showEndDatePicker = false
+                }) { Text("Aceptar") }
+            }
+        ) {
+            DatePicker(state = datePickerStateEnd)
+        }
     }
 
     Scaffold(
@@ -82,7 +121,7 @@ fun ReportesTrabajadoresScreen(
                 ExtendedFloatingActionButton(
                     onClick = {
                         val csvData = viewModel.generarCsvData()
-                        val file = File(context.cacheDir, "Reporte_Ventas_${fechaInicio.replace("/", "-")}.csv")
+                        val file = File(context.cacheDir, "Reporte_Ventas_${fechaInicioStr.replace("/", "-")}.csv")
                         try {
                             FileOutputStream(file).use { it.write(csvData.toByteArray()) }
                             val uri = androidx.core.content.FileProvider.getUriForFile(
@@ -140,26 +179,36 @@ fun ReportesTrabajadoresScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         OutlinedTextField(
-                            value = fechaInicio,
-                            onValueChange = { fechaInicio = it },
+                            value = fechaInicioStr,
+                            onValueChange = {},
+                            readOnly = true,
                             label = { Text("Desde") },
-                            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                            modifier = Modifier.weight(1f),
+                            trailingIcon = { 
+                                IconButton(onClick = { showStartDatePicker = true }) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = null)
+                                }
+                            },
+                            modifier = Modifier.weight(1f).clickable { showStartDatePicker = true },
                             shape = RoundedCornerShape(10.dp)
                         )
 
                         OutlinedTextField(
-                            value = fechaFin,
-                            onValueChange = { fechaFin = it },
+                            value = fechaFinStr,
+                            onValueChange = {},
+                            readOnly = true,
                             label = { Text("Hasta") },
-                            trailingIcon = { Icon(Icons.Default.CalendarMonth, contentDescription = null) },
-                            modifier = Modifier.weight(1f),
+                            trailingIcon = { 
+                                IconButton(onClick = { showEndDatePicker = true }) {
+                                    Icon(Icons.Default.CalendarMonth, contentDescription = null)
+                                }
+                            },
+                            modifier = Modifier.weight(1f).clickable { showEndDatePicker = true },
                             shape = RoundedCornerShape(10.dp)
                         )
                     }
                     
                     Button(
-                        onClick = onBuscar,
+                        onClick = { viewModel.buscarPorRango(fechaInicioStr, fechaFinStr) },
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
                         shape = RoundedCornerShape(10.dp)
@@ -203,7 +252,7 @@ fun ReportesTrabajadoresScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(text = "Pedido #${pedido.numeroPedido}", fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
                                     Text(text = "$fechaStr • $hora", fontSize = 12.sp, color = Color.Gray)
                                     Text(text = "Mesa: ${pedido.mesaId ?: "Llevar"}", fontSize = 11.sp, color = Color(0xFF64748B))
@@ -214,11 +263,22 @@ fun ReportesTrabajadoresScreen(
                                         fontWeight = FontWeight.ExtraBold,
                                         color = Color(0xFF1E233D)
                                     )
+                                    val estadoTexto = when(pedido.estado?.name) {
+                                        "PAGADO" -> pedido.metodoPago?.valor ?: "Pagado"
+                                        "CANCELADO" -> "ANULADO ❌"
+                                        "PENDIENTE" -> "Pendiente ⏳"
+                                        else -> pedido.estado?.name ?: "Desconocido"
+                                    }
+                                    val estadoColor = when(pedido.estado?.name) {
+                                        "PAGADO" -> Color(0xFF10B981)
+                                        "CANCELADO" -> Color(0xFFEF4444)
+                                        else -> Color(0xFFF59E0B)
+                                    }
                                     Text(
-                                        text = pedido.metodoPago?.valor ?: "Pendiente",
+                                        text = estadoTexto,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = if (pedido.metodoPago != null) Color(0xFF10B981) else Color(0xFFEF4444)
+                                        color = estadoColor
                                     )
                                 }
                             }
@@ -247,7 +307,8 @@ fun ReportesTrabajadoresScreen(
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
 
-                    Text(text = "Método de Pago: ${pedido.metodoPago?.valor ?: "No definido"}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF475569))
+                    Text(text = "Estado: ${pedido.estado?.name ?: "S/D"}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if(pedido.estado?.name == "CANCELADO") Color.Red else Color.DarkGray)
+                    Text(text = "Método de Pago: ${pedido.metodoPago?.valor ?: "No aplica"}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF475569))
                     Text(text = "Cliente: ${pedido.nombreCliente ?: "General"}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF475569))
 
                     Spacer(modifier = Modifier.height(8.dp))

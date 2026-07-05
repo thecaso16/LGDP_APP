@@ -47,22 +47,33 @@ fun PedidosPendientesScreen(
             )
         }
     ) { innerPadding ->
-        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).background(Color(0xFFF8FAFC))) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding()) // Solo aplicamos el padding superior aquí
+                .background(Color(0xFFF8FAFC))
+        ) {
             if (pedidosActivos.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("No hay pedidos activos", color = Color.Gray)
                 }
             } else {
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(pedidosActivos) { item ->
+                    items(
+                        items = pedidosActivos,
+                        key = { it.pedido.pedidoId } // Clave estable para mejorar el scroll
+                    ) { item ->
                         val p = item.pedido
                         val hora = if (p.fecha != null) timeFormat.format(Date(p.fecha)) else "--"
                         
                         Card(
-                            modifier = Modifier.fillMaxWidth().clickable { onVerDetalle(p.pedidoId) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onVerDetalle(p.pedidoId) },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
                             elevation = CardDefaults.cardElevation(2.dp)

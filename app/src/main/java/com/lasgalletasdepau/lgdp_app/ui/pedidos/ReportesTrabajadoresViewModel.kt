@@ -20,6 +20,7 @@ data class PedidoConDetalles(
 
 class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel(application) {
     private val appDao = AppDatabase.getDatabase(application).appDao()
+    private val syncManager = com.lasgalletasdepau.lgdp_app.data.remote.SyncManager.getInstance(application)
 
     private val _usuarioLogueado = MutableStateFlow<UsuarioEntity?>(null)
     val usuarioLogueado: StateFlow<UsuarioEntity?> = _usuarioLogueado
@@ -45,22 +46,26 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
                 val inicioDate = format.parse(fechaInicioStr) ?: Date()
                 val finDate = format.parse(fechaFinStr) ?: Date()
                 
-                // Ajustar inicioDate al primer milisegundo del día
-                val calInicio = Calendar.getInstance()
-                calInicio.time = inicioDate
-                calInicio.set(Calendar.HOUR_OF_DAY, 0)
-                calInicio.set(Calendar.MINUTE, 0)
-                calInicio.set(Calendar.SECOND, 0)
-                calInicio.set(Calendar.MILLISECOND, 0)
+                val calInicio = Calendar.getInstance().apply {
+                    time = inicioDate
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
 
-                // Ajustar finDate al último milisegundo del día
-                val calFin = Calendar.getInstance()
-                calFin.time = finDate
-                calFin.set(Calendar.HOUR_OF_DAY, 23)
-                calFin.set(Calendar.MINUTE, 59)
-                calFin.set(Calendar.SECOND, 59)
-                calFin.set(Calendar.MILLISECOND, 999)
+                val calFin = Calendar.getInstance().apply {
+                    time = finDate
+                    set(Calendar.HOUR_OF_DAY, 23)
+                    set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }
 
+                // 1. PRIMERO: Bajar historial de Firebase para este rango
+                syncManager.bajarHistorialRango(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
+
+                // 2. SEGUNDO: Leer de la base de datos local (ya actualizada)
                 val pedidos = appDao.obtenerPedidosPorFechaYUsuario(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
                 
                 val resultado = pedidos.map { pedido ->

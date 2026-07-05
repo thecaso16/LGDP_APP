@@ -146,7 +146,11 @@ fun PedidoScreen(
                 }
                 1 -> {
                     // CARRITO
-                    LazyColumn(modifier = Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         item {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
@@ -157,27 +161,23 @@ fun PedidoScreen(
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text("Resumen de Orden 📋", fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
                                     Spacer(modifier = Modifier.height(12.dp))
-                                    carrito.forEach { (id, det) ->
+                                    carrito.forEach { (_, det) ->
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("${det.cantidad}x ${det.nombreProducto}", fontSize = 14.sp)
+                                            Text("${det.cantidad}x ${det.nombreProducto}", fontSize = 14.sp, modifier = Modifier.weight(1f))
                                             Text("S/ ${String.format("%.2f", det.cantidad * det.precioUnitario)}", fontWeight = FontWeight.Bold)
                                         }
-                                        OutlinedTextField(
-                                            value = det.comentario ?: "",
-                                            onValueChange = { viewModel.actualizarComentario(id, it) },
-                                            placeholder = { Text("Nota...", fontSize = 11.sp) },
-                                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
                                         Spacer(modifier = Modifier.height(8.dp))
                                     }
                                     if (carrito.isEmpty()) Text("El carrito está vacío", color = Color.Gray)
                                     HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                                    Text("Notas del Pedido 📝", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     OutlinedTextField(
                                         value = notasGlobales,
                                         onValueChange = { viewModel.actualizarNotasGlobales(it) },
-                                        label = { Text("Notas Generales") },
-                                        modifier = Modifier.fillMaxWidth()
+                                        placeholder = { Text("Ej. Sin cubiertos, cliente tiene prisa...") },
+                                        modifier = Modifier.fillMaxWidth().height(90.dp),
+                                        shape = RoundedCornerShape(12.dp)
                                     )
                                     Spacer(modifier = Modifier.height(12.dp))
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -186,6 +186,10 @@ fun PedidoScreen(
                                     }
                                 }
                             }
+                        }
+                        // Espacio extra al final para que el FAB no tape el total
+                        item {
+                            Spacer(modifier = Modifier.height(80.dp))
                         }
                     }
                 }

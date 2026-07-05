@@ -3,7 +3,9 @@ package com.lasgalletasdepau.lgdp_app
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -40,9 +42,10 @@ fun DetalleMesaScreen(
         viewModel.cargarDatosMesa(mesaId, pedidoId)
     }
 
-    val nombreCliente = pedido?.nombreCliente ?: "Cargando..."
+    val nombreCliente = pedido?.nombreCliente ?: "Sin pedido activo"
     val titulo = if (mesaId != null) "Mesa ${mesaId.toString().padStart(2, '0')}" else "Para Llevar"
     val totalConsumido = pedido?.total ?: 0.0
+    val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
@@ -58,7 +61,12 @@ fun DetalleMesaScreen(
         }
     ) { innerPadding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding).background(Color(0xFFF8FAFC)).padding(16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFFF8FAFC))
+                .verticalScroll(scrollState)
+                .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
@@ -72,7 +80,7 @@ fun DetalleMesaScreen(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Text(text = titulo, fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
                             Surface(color = Color(0xFFEF4444).copy(alpha = 0.1f), contentColor = Color(0xFFEF4444), shape = RoundedCornerShape(8.dp)) {
-                                Text(text = "Cuenta Activa", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(text = if (pedido != null) "Cuenta Activa" else "Mesa Bloqueada ⚠️", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
@@ -82,53 +90,61 @@ fun DetalleMesaScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
-                Text(text = "Consumo Detallado 🍪", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
-                Spacer(modifier = Modifier.height(8.dp))
+                if (pedido != null) {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(text = "Consumo Detallado 🍪", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        detalles.forEach { item ->
-                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(text = "${item.cantidad} x ${item.nombreProducto}", fontSize = 14.sp, color = Color(0xFF334155))
-                                Text(text = String.format("S/. %.2f", item.cantidad * item.precioUnitario), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            detalles.forEach { item ->
+                                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(text = "${item.cantidad} x ${item.nombreProducto}", fontSize = 14.sp, color = Color(0xFF334155))
+                                    Text(text = String.format("S/. %.2f", item.cantidad * item.precioUnitario), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(text = "TOTAL A PAGAR:", fontWeight = FontWeight.Black, color = Color.Gray)
+                                Text(text = String.format("S/. %.2f", totalConsumido), fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
                             }
                         }
-                        HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "TOTAL A PAGAR:", fontWeight = FontWeight.Black, color = Color.Gray)
-                            Text(text = String.format("S/. %.2f", totalConsumido), fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
-                        }
+                    }
+                } else {
+                    Box(modifier = Modifier.fillMaxWidth().padding(top = 40.dp), contentAlignment = Alignment.Center) {
+                        Text("No se encontró una comanda para esta mesa.\nSi la mesa aparece ocupada por error, usa el botón de abajo para liberarla.", textAlign = androidx.compose.ui.text.style.TextAlign.Center, color = Color.Gray, fontSize = 14.sp)
                     }
                 }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = { mostrarMetodosPago = true },
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
-                ) {
-                    Icon(Icons.Default.Payments, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Registrar Pago y Finalizar", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
+                if (pedido != null) {
+                    Button(
+                        onClick = { mostrarMetodosPago = true },
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                    ) {
+                        Icon(Icons.Default.Payments, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Registrar Pago y Finalizar", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
 
-                OutlinedButton(
-                    onClick = { onIrAPedidoEdicion(pedido?.mesaId, pedido?.pedidoId) },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.5.dp, Color(0xFF1E233D))
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF1E233D))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Modificar Productos", color = Color(0xFF1E233D), fontWeight = FontWeight.Bold)
+                    OutlinedButton(
+                        onClick = { onIrAPedidoEdicion(pedido?.mesaId, pedido?.pedidoId) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.5.dp, Color(0xFF1E233D))
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color(0xFF1E233D))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Modificar Productos", color = Color(0xFF1E233D), fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 TextButton(
@@ -136,7 +152,7 @@ fun DetalleMesaScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFEF4444))
                 ) {
-                    Text("❌ Cancelar Toda la Comanda", fontWeight = FontWeight.Bold)
+                    Text(if (pedido != null) "❌ Cancelar Toda la Comanda" else "🔓 Forzar Liberación de Mesa", fontWeight = FontWeight.Bold)
                 }
             }
         }

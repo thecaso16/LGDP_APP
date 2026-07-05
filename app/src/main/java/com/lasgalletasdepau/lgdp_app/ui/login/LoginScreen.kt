@@ -116,9 +116,13 @@ fun LoginScreen(
                     // Campo: Correo
                     OutlinedTextField(
                         value = usuario,
-                        onValueChange = { usuario = it },
+                        onValueChange = { 
+                            // No permitir espacios ni saltos de línea en el correo
+                            usuario = it.replace("\\s".toRegex(), "") 
+                        },
                         label = { Text("Correo Electrónico") },
                         modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         enabled = loginState !is LoginState.Loading,
                         isError = loginState is LoginState.Error,
@@ -134,10 +138,14 @@ fun LoginScreen(
                     // Campo: Contraseña
                     OutlinedTextField(
                         value = contrasena,
-                        onValueChange = { contrasena = it },
+                        onValueChange = { 
+                            // No permitir espacios ni saltos de línea en la contraseña
+                            contrasena = it.replace("\\s".toRegex(), "") 
+                        },
                         label = { Text("Contraseña") },
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         enabled = loginState !is LoginState.Loading,
                         isError = loginState is LoginState.Error,

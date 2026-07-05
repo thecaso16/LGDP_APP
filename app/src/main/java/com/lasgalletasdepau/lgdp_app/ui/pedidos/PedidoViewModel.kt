@@ -15,6 +15,7 @@ import java.util.*
 class PedidoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val appDao = AppDatabase.getDatabase(application).appDao()
+    private val syncManager = com.lasgalletasdepau.lgdp_app.data.remote.SyncManager.getInstance(application)
 
     // Usuario logueado (Mozo)
     private val _usuarioLogueado = MutableStateFlow<UsuarioEntity?>(null)
@@ -49,12 +50,17 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     private fun observarPedidosActivos() {
         viewModelScope.launch {
             while(true) {
+                // Primero intentamos bajar lo nuevo de Firebase
+                try {
+                    syncManager.sincronizarTodo()
+                } catch(e: Exception) {}
+
                 val lista = appDao.obtenerPedidosActivosGenerales()
                 val resultado = lista.map { pedido ->
                     PedidoConDetalles(pedido, appDao.obtenerDetallesPorPedido(pedido.pedidoId))
                 }
                 _pedidosActivos.value = resultado
-                delay(5000)
+                delay(10000) // Cada 10 segundos es suficiente
             }
         }
     }
@@ -86,7 +92,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                 
                 val nuevoCarrito = detalles.associateBy({ it.productoId ?: UUID.randomUUID().toString() }, { it })
                 _carrito.value = nuevoCarrito
-                // Actualizar notas si estuvieran en BD
+                _notasGlobales.value = pedido.notas ?: ""
             }
         }
     }
@@ -150,7 +156,8 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
             val pedidoActual = if (pedidoExistenteId != null) {
                 appDao.obtenerPedidoPorId(idFinal)?.copy(
                     total = total,
-                    usuarioId = user?.uid, // Asegurar que tenga el ID del usuario actual
+                    usuarioId = user?.uid,
+                    notas = _notasGlobales.value,
                     sincronizado = false
                 )
             } else {
@@ -165,6 +172,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     nombreCliente = clienteNombre,
                     total = total,
                     usuarioId = user?.uid,
+                    notas = _notasGlobales.value,
                     sincronizado = false
                 )
             }
@@ -179,6 +187,9 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     appDao.marcarMesaOcupada(mesaId, clienteNombre)
                 }
             }
+
+            // Sincronizar inmediatamente
+            syncManager.sincronizarTodo()
 
             limpiarCarrito()
             onCompletado()

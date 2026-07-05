@@ -18,5 +18,6 @@ data class PedidoEntity(
     val nombreCliente: String?,
     val total: Double,
     val usuarioId: String?,
+    val notas: String? = null,
     val sincronizado: Boolean
 )

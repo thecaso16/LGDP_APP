@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
 import com.lasgalletasdepau.lgdp_app.data.remote.SyncManager
 import com.lasgalletasdepau.lgdp_app.ui.login.LoginScreen
 import com.lasgalletasdepau.lgdp_app.ui.login.LoginViewModel
@@ -24,8 +23,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Inicializamos los componentes de sincronización
-        val appDao = AppDatabase.getDatabase(this).appDao()
-        val syncManager = SyncManager(appDao)
+        val syncManager = SyncManager.getInstance(this)
         val networkMonitor = NetworkMonitor(this)
 
         // Lanzamos la observación de red ligada al ciclo de vida de la Activity
