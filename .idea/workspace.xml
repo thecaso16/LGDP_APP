@@ -22,14 +22,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c633ad9c-f2ec-44cb-ad1a-fde1d893cd6d" name="Changes" comment="Se creo el nuevo rol cajero y algunos detalles mas">
+      <change afterPath="$PROJECT_DIR$/.idea/modules/app/LGDP_APP.app.iml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/domain/model/Insumo.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/domain/model/Producto.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/admin/GestionCatalogoViewModel.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/admin/GestionInventarioViewModel.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/admin/GestionUsuariosViewModel.kt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/admin/ReportesNegocioViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/resourceHashesCache.bin" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/outputFiles.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/outputFiles.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gradle/configuration-cache/24akev2kuyx5ju9v87xuwtpa1/candidates.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/configuration-cache/24akev2kuyx5ju9v87xuwtpa1/candidates.bin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/planningMode.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ReportesTrabajadoresScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ReportesTrabajadoresScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/dao/AppDao.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/dao/AppDao.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/entity/CajaSesionEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/entity/CajaSesionEntity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/remote/SyncManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/remote/SyncManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/ReportesTrabajadoresViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/ReportesTrabajadoresViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/MainContainerScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/MainContainerScreen.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/AppDatabase.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/AppDatabase.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/CajaViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/CajaViewModel.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,7 +57,7 @@
       <entry key="_C:/Users/carlo/StudioProjects/LGDP_APP" value="3G1gedLoaseoWSMqiammbzQKdtp" />
     </persistenceIdMap>
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[LocalEmulator::path=C:\Users\jhers\.android\avd\Pixel_7.avd]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[PhysicalDevice::serial=BKB6R21125001388]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />
@@ -83,6 +95,18 @@
 }</component>
   <component name="ProjectId" id="3FpJ7EnVHNBG0Ezhp5px9bYvBy4" />
   <component name="ProjectSessionTemplates">
+    <option name="inlineTemplate">
+      <template>
+        <option name="modeId" value="InlineAgent" />
+        <option name="model">
+          <model>
+            <option name="modelType" value="builtin_id" />
+            <option name="modelValue" value="auto" />
+          </model>
+        </option>
+        <option name="targetType" value="LOCAL" />
+      </template>
+    </option>
     <option name="panelTemplate">
       <template>
         <option name="modeId" value="Agent" />

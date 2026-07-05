@@ -100,6 +100,7 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
             egresos = egre,
             montoFisicoReal = fisic,
             justificacion = justificacion,
+            estado = "CERRADA",
             sincronizado = false
         )
 

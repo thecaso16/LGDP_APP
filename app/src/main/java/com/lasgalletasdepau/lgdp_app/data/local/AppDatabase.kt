@@ -18,7 +18,7 @@ import com.lasgalletasdepau.lgdp_app.data.local.entity.*
         MesaEntity::class,
         CajaSesionEntity::class
     ],
-    version = 7, // Subido por cambio en estructura de UsuarioEntity (rol como String) y nuevas tablas
+    version = 8, // Incrementado por cambios de esquema pendientes y nuevas funcionalidades de caja
     exportSchema = false
 )
 @TypeConverters(AppConverters::class)
