@@ -1,0 +1,97 @@
+package com.lasgalletasdepau.lgdp_app.ui.pedidos
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
+import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoDetalleEntity
+import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoEntity
+import com.lasgalletasdepau.lgdp_app.data.local.entity.UsuarioEntity
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
+
+data class PedidoConDetalles(
+    val pedido: PedidoEntity,
+    val detalles: List<PedidoDetalleEntity>
+)
+
+class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel(application) {
+    private val appDao = AppDatabase.getDatabase(application).appDao()
+
+    private val _usuarioLogueado = MutableStateFlow<UsuarioEntity?>(null)
+    val usuarioLogueado: StateFlow<UsuarioEntity?> = _usuarioLogueado
+
+    private val _historial = MutableStateFlow<List<PedidoConDetalles>>(emptyList())
+    val historial: StateFlow<List<PedidoConDetalles>> = _historial
+
+    init {
+        cargarUsuario()
+    }
+
+    private fun cargarUsuario() {
+        viewModelScope.launch {
+            _usuarioLogueado.value = appDao.obtenerUsuarioLogueado()
+        }
+    }
+
+    fun buscarPorRango(fechaInicioStr: String, fechaFinStr: String) {
+        val user = _usuarioLogueado.value ?: return
+        viewModelScope.launch {
+            try {
+                val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                val inicioDate = format.parse(fechaInicioStr) ?: Date()
+                val finDate = format.parse(fechaFinStr) ?: Date()
+                
+                // Ajustar inicioDate al primer milisegundo del día
+                val calInicio = Calendar.getInstance()
+                calInicio.time = inicioDate
+                calInicio.set(Calendar.HOUR_OF_DAY, 0)
+                calInicio.set(Calendar.MINUTE, 0)
+                calInicio.set(Calendar.SECOND, 0)
+                calInicio.set(Calendar.MILLISECOND, 0)
+
+                // Ajustar finDate al último milisegundo del día
+                val calFin = Calendar.getInstance()
+                calFin.time = finDate
+                calFin.set(Calendar.HOUR_OF_DAY, 23)
+                calFin.set(Calendar.MINUTE, 59)
+                calFin.set(Calendar.SECOND, 59)
+                calFin.set(Calendar.MILLISECOND, 999)
+
+                val pedidos = appDao.obtenerPedidosPorFechaYUsuario(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
+                
+                val resultado = pedidos.map { pedido ->
+                    val detalles = appDao.obtenerDetallesPorPedido(pedido.pedidoId)
+                    PedidoConDetalles(pedido, detalles)
+                }
+                _historial.value = resultado
+            } catch (e: Exception) {
+                _historial.value = emptyList()
+            }
+        }
+    }
+
+    fun generarCsvData(): String {
+        val sb = StringBuilder()
+        // Encabezados solicitados: Cantidad, Productos, Precio Unitario, Subtotal por producto, Total Pedido, Método Pago
+        sb.append("Cantidad;Producto;Precio Unitario;Subtotal;Total Pedido;Metodo Pago\n")
+        
+        _historial.value.forEach { item ->
+            val pedido = item.pedido
+            val detalles = item.detalles
+            
+            detalles.forEach { det ->
+                sb.append("${det.cantidad};")
+                sb.append("${det.nombreProducto};")
+                sb.append(String.format("%.2f", det.precioUnitario).replace(".", ",") + ";")
+                sb.append(String.format("%.2f", det.cantidad * det.precioUnitario).replace(".", ",") + ";")
+                sb.append(String.format("%.2f", pedido.total).replace(".", ",") + ";")
+                sb.append("${pedido.metodoPago?.valor ?: "No definido"}\n")
+            }
+        }
+        return sb.toString()
+    }
+}

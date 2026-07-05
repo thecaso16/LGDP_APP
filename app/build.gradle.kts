@@ -7,11 +7,7 @@ plugins {
 
 android {
     namespace = "com.lasgalletasdepau.lgdp_app"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.lasgalletasdepau.lgdp_app"
@@ -66,6 +62,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     // Componentes en tiempo de ejecución para Compose (Para solucionar collectAsState())
     implementation(libs.androidx.compose.runtime)
+
+    // Coil para imágenes
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     // Room Database
     implementation(libs.androidx.room.runtime)

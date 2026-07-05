@@ -8,5 +8,6 @@ import com.lasgalletasdepau.lgdp_app.domain.model.EstadoMesa
 data class MesaEntity(
     @PrimaryKey val id: Int,
     val numero: String,
-    val estado: EstadoMesa
+    val estado: EstadoMesa,
+    val clienteActivo: String? = null
 )

@@ -9,8 +9,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocalMall // Icono ideal para representar pedidos para llevar / bolsa
-import androidx.compose.material.icons.filled.PointOfSale
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.LocalMall
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,35 +20,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-data class Mesa(
-    val numero: Int,
-    val estado: String,
-    val estaOcupada: Boolean,
-    val cliente: String = ""
-)
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lasgalletasdepau.lgdp_app.data.local.entity.MesaEntity
+import com.lasgalletasdepau.lgdp_app.domain.model.EstadoMesa
+import com.lasgalletasdepau.lgdp_app.ui.mesas.SalonViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SalonScreen(
-    onIrAPedido: () -> Unit,
-    onIrADetalleMesa: () -> Unit,
-    onIrACierreCaja: () -> Unit,
-    onIrAPedidoParaLlevar: () -> Unit // <-- Nuevos requerimientos: Evento para llevar
+    onIrAPedido: (Int, String) -> Unit,
+    onIrADetalleMesa: (Int) -> Unit,
+    onIrAPedidoParaLlevar: () -> Unit,
+    onLogout: () -> Unit,
+    viewModel: SalonViewModel = viewModel()
 ) {
-    val mesas = remember {
-        listOf(
-            Mesa(1, "Disponible", false),
-            Mesa(2, "Disponible", false),
-            Mesa(3, "Ocupada", true, "Jonathan"),
-            Mesa(4, "Disponible", false),
-            Mesa(5, "Disponible", false),
-            Mesa(6, "Disponible", false)
-        )
-    }
+    val mesas by viewModel.mesas.collectAsState()
 
     var mostrarDialogoApertura by remember { mutableStateOf(false) }
-    var mesaSeleccionadaParaAbrir by remember { mutableStateOf<Mesa?>(null) }
+    var mesaSeleccionadaParaAbrir by remember { mutableStateOf<MesaEntity?>(null) }
     var nombreClienteInput by remember { mutableStateOf("") }
 
     Scaffold(
@@ -57,21 +46,20 @@ fun SalonScreen(
                 title = { Text("Salón de Mesas 🪑", fontWeight = FontWeight.Bold, color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D)),
                 actions = {
-                    IconButton(onClick = onIrACierreCaja) {
+                    IconButton(onClick = onLogout) {
                         Icon(
-                            imageVector = Icons.Default.PointOfSale,
-                            contentDescription = "Cierre de Caja",
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Cerrar Sesión",
                             tint = Color.White
                         )
                     }
                 }
             )
         },
-        // <-- Añadimos el botón flotante en la parte inferior derecha
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onIrAPedidoParaLlevar,
-                containerColor = Color(0xFF10B981), // Color verde amigable
+                containerColor = Color(0xFF10B981),
                 contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(8.dp),
                 shape = RoundedCornerShape(16.dp)
@@ -109,8 +97,8 @@ fun SalonScreen(
                     ItemMesa(
                         mesa = mesa,
                         onClickMesa = {
-                            if (mesa.estaOcupada) {
-                                onIrADetalleMesa()
+                            if (mesa.estado == EstadoMesa.OCUPADA) {
+                                onIrADetalleMesa(mesa.id)
                             } else {
                                 mesaSeleccionadaParaAbrir = mesa
                                 nombreClienteInput = ""
@@ -157,8 +145,10 @@ fun SalonScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        val mesaId = mesaSeleccionadaParaAbrir!!.id
+                        viewModel.abrirMesa(mesaId, nombreClienteInput)
                         mostrarDialogoApertura = false
-                        onIrAPedido()
+                        onIrAPedido(mesaId, nombreClienteInput)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                     shape = RoundedCornerShape(10.dp)
@@ -180,9 +170,10 @@ fun SalonScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ItemMesa(mesa: Mesa, onClickMesa: () -> Unit) {
-    val fondoColor = if (mesa.estaOcupada) Color(0xFFEF4444).copy(alpha = 0.08f) else Color.White
-    val bordeColor = if (mesa.estaOcupada) Color(0xFFEF4444) else Color(0xFFE2E8F0)
+fun ItemMesa(mesa: MesaEntity, onClickMesa: () -> Unit) {
+    val estaOcupada = mesa.estado == EstadoMesa.OCUPADA
+    val fondoColor = if (estaOcupada) Color(0xFFEF4444).copy(alpha = 0.08f) else Color.White
+    val bordeColor = if (estaOcupada) Color(0xFFEF4444) else Color(0xFFE2E8F0)
     val tituloColor = Color(0xFF1E233D)
 
     Card(
@@ -209,17 +200,17 @@ fun ItemMesa(mesa: Mesa, onClickMesa: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Mesa ${mesa.numero}",
+                    text = "${mesa.numero}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Black,
                     color = tituloColor
                 )
                 Surface(
-                    color = if (mesa.estaOcupada) Color(0xFFEF4444) else Color(0xFF10B981),
+                    color = if (estaOcupada) Color(0xFFEF4444) else Color(0xFF10B981),
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
-                        text = if (mesa.estaOcupada) "Ocupada" else "Libre",
+                        text = if (estaOcupada) "Ocupada" else "Libre",
                         color = Color.White,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
@@ -228,9 +219,9 @@ fun ItemMesa(mesa: Mesa, onClickMesa: () -> Unit) {
                 }
             }
 
-            if (mesa.estaOcupada) {
+            if (estaOcupada) {
                 Text(
-                    text = "👤 ${mesa.cliente}",
+                    text = "👤 ${mesa.clienteActivo ?: "Cliente"}",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color(0xFF475569)
@@ -249,10 +240,6 @@ fun ItemMesa(mesa: Mesa, onClickMesa: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun SalonScreenPreview() {
-    SalonScreen(
-        onIrAPedido = { },
-        onIrADetalleMesa = { },
-        onIrACierreCaja = { },
-        onIrAPedidoParaLlevar = { } // 👈 Actualizado también el Preview para evitar errores de compilación
-    )
+    // Para el preview, como no tenemos ViewModel real, esto podría fallar o mostrarse vacío.
+    // Idealmente usaríamos un ViewModel falso o pasaríamos los datos directamente.
 }

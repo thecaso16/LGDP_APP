@@ -32,4 +32,11 @@ class AppConverters {
 
     @TypeConverter
     fun toMetodoPago(valor: String?): MetodoPago? = valor?.let { enumValueOf<MetodoPago>(it) }
+
+    // --- ROL USUARIO ---
+    @TypeConverter
+    fun fromRolUsuario(rol: RolUsuario?): String? = rol?.name
+
+    @TypeConverter
+    fun toRolUsuario(valor: String?): RolUsuario? = valor?.let { RolUsuario.fromString(it) }
 }
