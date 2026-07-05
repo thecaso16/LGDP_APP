@@ -6,5 +6,6 @@ data class Usuario(
     val apellidos: String = "",
     val dni: String = "",
     val email: String = "",
-    val rol: String = "" // "Administrador" o "Trabajador"
+    val rol: String = "", // "Administrador" o "Trabajador"
+    val activo: Boolean = true
 )

@@ -22,61 +22,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// MODELO DE DATOS PARA LOS INSUMOS (MATERIA PRIMA)
-data class Insumo(
-    val id: Int,
-    val nombre: String,
-    val cantidadActual: Double,
-    val cantidadMinima: Double, // Alerta si baja de aquí
-    val unidadMedida: String,   // "Kg", "Litros", "Unidades"
-    val categoria: String       // "Lácteos", "Harinas", "Descartables", etc.
-)
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.lasgalletasdepau.lgdp_app.domain.model.Insumo
+import com.lasgalletasdepau.lgdp_app.ui.admin.GestionInventarioViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GestionInventarioScreen() {
-    // LISTA DE INSUMOS DE PRUEBA
-    var listaInsumos by remember {
-        mutableStateOf(
-            listOf(
-                Insumo(1, "Harina de Trigo", 25.0, 10.0, "Kg", "Secos"),
-                Insumo(2, "Leche Entera Gloria", 4.0, 6.0, "Litros", "Lácteos"),
-                Insumo(3, "Chispas de Chocolate", 1.5, 2.0, "Kg", "Secos"),
-                Insumo(4, "Vasos para Café 8oz", 120.0, 50.0, "Unidades", "Descartables"),
-                Insumo(5, "Fresas Frescas", 0.0, 3.0, "Kg", "Frutas")
-            )
-        )
-    }
+fun GestionInventarioScreen(viewModel: GestionInventarioViewModel = viewModel()) {
+    val insumos by viewModel.insumos.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-    // LISTA DE CATEGORÍAS Y FILTROS
-    var categorias by remember { mutableStateOf(listOf("Todos", "Secos", "Lácteos", "Descartables", "Frutas")) }
-    var categoriaSeleccionada by remember { mutableStateOf("Todos") }
     var textoBusqueda by remember { mutableStateOf("") }
-
-    // ESTADOS PARA CREAR NUEVO INSUMO
     var mostrarFormularioCrear by remember { mutableStateOf(false) }
+
+    // ESTADOS CREAR
     var nuevoNombre by remember { mutableStateOf("") }
-    var nuevaCantidad by remember { mutableStateOf("") }
-    var nuevaCantidadMinima by remember { mutableStateOf("") }
-    var nuevaUnidadMedida by remember { mutableStateOf("Kg") }
-    var nuevaCategoriaSeleccionada by remember { mutableStateOf("Secos") }
+    var nuevaCant by remember { mutableStateOf("") }
+    var nuevaMin by remember { mutableStateOf("") }
+    var unidad by remember { mutableStateOf("Kg") }
 
-    // ESTADOS PARA CREAR CATEGORÍA INTERNA
-    var mostrarDialogoCategoria by remember { mutableStateOf(false) }
-    var nuevaCategoriaTexto by remember { mutableStateOf("") }
-
-    // ESTADOS PARA GESTIONAR / EDITAR INSUMO EXISTENTE
     var insumoSeleccionado by remember { mutableStateOf<Insumo?>(null) }
-    var editNombre by remember { mutableStateOf("") }
-    var editCantidad by remember { mutableStateOf("") }
-    var editCantidadMinima by remember { mutableStateOf("") }
-    var editUnidad by remember { mutableStateOf("Kg") }
-    var editCategoria by remember { mutableStateOf("") }
-    var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
+    var editCant by remember { mutableStateOf("") }
+    var editMin by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -86,240 +55,75 @@ fun GestionInventarioScreen() {
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
-                containerColor = Color(0xFF1E233D),
-                contentColor = Color.White
-            ) {
-                Icon(if (mostrarFormularioCrear) Icons.Default.Close else Icons.Default.Add, contentDescription = "Agregar Insumo")
+            FloatingActionButton(onClick = { mostrarFormularioCrear = !mostrarFormularioCrear }, containerColor = Color(0xFF1E233D), contentColor = Color.White) {
+                Icon(if (mostrarFormularioCrear) Icons.Default.Close else Icons.Default.Add, contentDescription = null)
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
-        ) {
-
-            // SECCIÓN: FORMULARIO PARA REGISTRAR NUEVO INSUMO
-            AnimatedVisibility(visible = mostrarFormularioCrear) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(4.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Registrar Materia Prima / Insumo", fontWeight = FontWeight.Bold, color = Color(0xFF1E233D), fontSize = 16.sp)
-
-                        OutlinedTextField(
-                            value = nuevoNombre,
-                            onValueChange = { nuevoNombre = it },
-                            label = { Text("Nombre del Insumo (Ej. Azúcar Blanca)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            // Cantidad Inicial
-                            OutlinedTextField(
-                                value = nuevaCantidad,
-                                onValueChange = { input ->
-                                    if (input.isEmpty() || input.matches(Regex("^\\d*\\.?\\d{0,2}\$"))) nuevaCantidad = input
-                                },
-                                label = { Text("Cant. Inicial") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-
-                            // Alerta Mínima
-                            OutlinedTextField(
-                                value = nuevaCantidadMinima,
-                                onValueChange = { input ->
-                                    if (input.isEmpty() || input.matches(Regex("^\\d*\\.?\\d{0,2}\$"))) nuevaCantidadMinima = input
-                                },
-                                label = { Text("Stock Mínimo") },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                        }
-
-                        // Selector de Unidad de Medida
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text("Unidad:", fontWeight = FontWeight.Medium, color = Color(0xFF475569))
-                            listOf("Kg", "Litros", "Unidades").forEach { unidad ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    RadioButton(selected = nuevaUnidadMedida == unidad, onClick = { nuevaUnidadMedida = unidad })
-                                    Text(unidad, fontSize = 14.sp)
-                                }
-                            }
-                        }
-
-                        // Selector de Categoría
-                        Text("Categoría del Insumo:", fontSize = 13.sp, color = Color.Gray)
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            items(categorias.filter { it != "Todos" }) { cat ->
-                                FilterChip(
-                                    selected = nuevaCategoriaSeleccionada == cat,
-                                    onClick = { nuevaCategoriaSeleccionada = cat },
-                                    label = { Text(cat) }
-                                )
-                            }
-                        }
-
-                        Button(
-                            onClick = {
-                                val cantDouble = nuevaCantidad.toDoubleOrNull() ?: 0.0
-                                val minDouble = nuevaCantidadMinima.toDoubleOrNull() ?: 0.0
-                                if (nuevoNombre.isNotBlank()) {
-                                    val nuevoId = (listaInsumos.maxOfOrNull { it.id } ?: 0) + 1
-                                    listaInsumos = listaInsumos + Insumo(
-                                        id = nuevoId,
-                                        nombre = nuevoNombre,
-                                        cantidadActual = cantDouble,
-                                        cantidadMinima = minDouble,
-                                        unidadMedida = nuevaUnidadMedida,
-                                        categoria = nuevaCategoriaSeleccionada
-                                    )
-                                    nuevoNombre = ""
-                                    nuevaCantidad = ""
-                                    nuevaCantidadMinima = ""
-                                    mostrarFormularioCrear = false
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                            shape = RoundedCornerShape(10.dp),
-                            enabled = nuevoNombre.isNotBlank() && nuevaCantidad.isNotBlank() && nuevaCantidadMinima.isNotBlank()
-                        ) {
-                            Text("Guardar Insumo", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            // BUSCADOR EN TIEMPO REAL
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).background(Color(0xFFF8FAFC))) {
             OutlinedTextField(
                 value = textoBusqueda,
                 onValueChange = { textoBusqueda = it },
-                placeholder = { Text("Buscar insumo (harina, leche...)", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
-                singleLine = true
+                placeholder = { Text("Buscar insumo...") },
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                shape = RoundedCornerShape(12.dp)
             )
 
-            // FILTROS HORIZONTALES DE CATEGORÍAS + BOTÓN CREAR
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LazyRow(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(categorias) { cat ->
-                        FilterChip(
-                            selected = cat == categoriaSeleccionada,
-                            onClick = { categoriaSeleccionada = cat },
-                            label = { Text(cat) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = Color(0xFF1E233D),
-                                selectedLabelColor = Color.White,
-                                containerColor = Color.White,
-                                labelColor = Color(0xFF1E233D)
-                            )
-                        )
+            if (isLoading && insumos.isEmpty()) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+
+            AnimatedVisibility(visible = mostrarFormularioCrear) {
+                Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Nuevo Insumo en Firebase", fontWeight = FontWeight.Bold)
+                        OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre Insumo") }, modifier = Modifier.fillMaxWidth())
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(value = nuevaCant, onValueChange = { nuevaCant = it }, label = { Text("Stock Act") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                            OutlinedTextField(value = nuevaMin, onValueChange = { nuevaMin = it }, label = { Text("Mínimo") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                        }
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            items(listOf("Kg", "Litros", "Unidades")) { u ->
+                                FilterChip(selected = unidad == u, onClick = { unidad = u }, label = { Text(u) })
+                            }
+                        }
+                        Button(
+                            onClick = {
+                                val c = nuevaCant.toDoubleOrNull() ?: 0.0
+                                val m = nuevaMin.toDoubleOrNull() ?: 0.0
+                                viewModel.guardarInsumo(Insumo(nombre = nuevoNombre, cantidadActual = c, cantidadMinima = m, unidadMedida = unidad)) {
+                                    if (it) { nuevoNombre = ""; nuevaCant = ""; mostrarFormularioCrear = false }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
+                        ) { Text("Guardar en Nube ☁️") }
                     }
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = { mostrarDialogoCategoria = true },
-                    modifier = Modifier.background(Color(0xFF1E233D).copy(alpha = 0.1f), RoundedCornerShape(50.dp))
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Nueva Categoría", tint = Color(0xFF1E233D))
                 }
             }
 
-            // LISTADO DE INSUMOS CON INDICADORES TIPO SEMÁFORO
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                val insumosFiltrados = listaInsumos.filter {
-                    (categoriaSeleccionada == "Todos" || it.categoria == categoriaSeleccionada) &&
-                            it.nombre.contains(textoBusqueda, ignoreCase = true)
-                }
-
-                items(insumosFiltrados) { insumo ->
-                    // Lógica del color del Semáforo
-                    val colorSemafórico = when {
-                        insumo.cantidadActual <= 0 -> Color(0xFFB91C1C) // Rojo: Agotado
-                        insumo.cantidadActual <= insumo.cantidadMinima -> Color(0xFFD97706) // Ámbar: Bajo Mínimo
-                        else -> Color(0xFF10B981) // Verde: Óptimo
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                val filtrados = insumos.filter { it.nombre.contains(textoBusqueda, ignoreCase = true) }
+                items(filtrados) { insumo ->
+                    val color = when {
+                        insumo.cantidadActual <= 0 -> Color.Red
+                        insumo.cantidadActual <= insumo.cantidadMinima -> Color(0xFFD97706)
+                        else -> Color(0xFF10B981)
                     }
-
-                    val estadoTexto = when {
-                        insumo.cantidadActual <= 0 -> "🔴 Agotado"
-                        insumo.cantidadActual <= insumo.cantidadMinima -> "⚠️ Stock Crítico"
-                        else -> "🟢 Estable"
-                    }
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                insumoSeleccionado = insumo
-                                editNombre = insumo.nombre
-                                editCantidad = insumo.cantidadActual.toString()
-                                editCantidadMinima = insumo.cantidadMinima.toString()
-                                editUnidad = insumo.unidadMedida
-                                editCategoria = insumo.categoria
-                            },
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        shape = RoundedCornerShape(14.dp),
-                        elevation = CardDefaults.cardElevation(1.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                // Círculo Semáforo Visual
-                                Box(
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .background(colorSemafórico, CircleShape)
-                                )
-                                Spacer(modifier = Modifier.width(14.dp))
-                                Column {
-                                    Text(text = insumo.nombre, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color(0xFF1E233D))
-                                    Text(text = "Clasificación: ${insumo.categoria}", fontSize = 12.sp, color = Color.Gray)
-                                    Text(text = estadoTexto, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colorSemafórico)
-                                }
+                    Card(modifier = Modifier.fillMaxWidth().clickable {
+                        insumoSeleccionado = insumo
+                        editCant = insumo.cantidadActual.toString()
+                        editMin = insumo.cantidadMinima.toString()
+                    }, colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(insumo.nombre, fontWeight = FontWeight.Bold)
+                                Text("Mínimo: ${insumo.cantidadMinima} ${insumo.unidadMedida}", fontSize = 11.sp, color = Color.Gray)
                             }
-
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = "${insumo.cantidadActual} ${insumo.unidadMedida}",
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 16.sp,
-                                    color = Color(0xFF1E233D)
-                                )
-                                Text(
-                                    text = "Min: ${insumo.cantidadMinima} ${insumo.unidadMedida}",
-                                    fontSize = 11.sp,
-                                    color = Color.Gray
-                                )
-                            }
+                            Text("${insumo.cantidadActual} ${insumo.unidadMedida}", fontWeight = FontWeight.Black, color = color)
                         }
                     }
                 }
@@ -327,138 +131,26 @@ fun GestionInventarioScreen() {
         }
     }
 
-    // --- DIÁLOGO: CREAR NUEVA CATEGORÍA DE INSUMO ---
-    if (mostrarDialogoCategoria) {
-        AlertDialog(
-            onDismissRequest = { mostrarDialogoCategoria = false },
-            title = { Text("Nueva Categoría de Insumos", fontWeight = FontWeight.Bold) },
-            text = {
-                OutlinedTextField(
-                    value = nuevaCategoriaTexto,
-                    onValueChange = { nuevaCategoriaTexto = it },
-                    label = { Text("Ej. Lácteos, Coberturas, Frutas") },
-                    singleLine = true
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val textoLimpio = nuevaCategoriaTexto.trim()
-                        if (textoLimpio.isNotBlank() && !categorias.any { it.equals(textoLimpio, ignoreCase = true) }) {
-                            // Cambiado 'categories' por 'categorias' y removida la línea duplicada
-                            categorias = categorias + textoLimpio
-                            nuevaCategoriaTexto = ""
-                            mostrarDialogoCategoria = false
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
-                ) { Text("Añadir") }
-            },
-            dismissButton = { TextButton(onClick = { mostrarDialogoCategoria = false }) { Text("Cancelar", color = Color.Gray) } }
-        )
-    }
-
-    // --- DIÁLOGO: MODIFICAR INSUMO Y AJUSTAR REABASTECIMIENTO ---
     if (insumoSeleccionado != null) {
         AlertDialog(
             onDismissRequest = { insumoSeleccionado = null },
-            shape = RoundedCornerShape(20.dp),
-            title = {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Detalle de Insumo", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                    IconButton(onClick = { mostrarConfirmarEliminar = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color(0xFFB91C1C))
-                    }
-                }
-            },
+            title = { Text("Gestionar Insumo") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(value = editNombre, onValueChange = { editNombre = it }, label = { Text("Nombre del Insumo") })
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedTextField(
-                            value = editCantidad,
-                            onValueChange = { input ->
-                                if (input.isEmpty() || input.matches(Regex("^\\d*\\.?\\d{0,2}\$"))) editCantidad = input
-                            },
-                            label = { Text("Stock Actual") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        OutlinedTextField(
-                            value = editCantidadMinima,
-                            onValueChange = { input ->
-                                if (input.isEmpty() || input.matches(Regex("^\\d*\\.?\\d{0,2}\$"))) editCantidadMinima = input
-                            },
-                            label = { Text("Stock Mínimo") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        listOf("Kg", "Litros", "Unidades").forEach { unidad ->
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = editUnidad == unidad, onClick = { editUnidad = unidad })
-                                Text(unidad, fontSize = 12.sp)
-                            }
-                        }
-                    }
-
-                    Text("Categoría:", fontSize = 12.sp, color = Color.Gray)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(categorias.filter { it != "Todos" }) { cat ->
-                            FilterChip(selected = editCategoria == cat, onClick = { editCategoria = cat }, label = { Text(cat) })
-                        }
-                    }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = editCant, onValueChange = { editCant = it }, label = { Text("Cantidad Actual") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                    OutlinedTextField(value = editMin, onValueChange = { editMin = it }, label = { Text("Stock Mínimo") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        val cantDouble = editCantidad.toDoubleOrNull() ?: 0.0
-                        val minDouble = editCantidadMinima.toDoubleOrNull() ?: 0.0
-                        if (editNombre.isNotBlank()) {
-                            listaInsumos = listaInsumos.map {
-                                if (it.id == insumoSeleccionado?.id) {
-                                    it.copy(nombre = editNombre, cantidadActual = cantDouble, cantidadMinima = minDouble, unidadMedida = editUnidad, categoria = editCategoria)
-                                } else it
-                            }
-                            insumoSeleccionado = null
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                    enabled = editNombre.isNotBlank() && editCantidad.isNotBlank() && editCantidadMinima.isNotBlank()
-                ) { Text("Guardar Cambios") }
+                Button(onClick = {
+                    val c = editCant.toDoubleOrNull() ?: 0.0
+                    val m = editMin.toDoubleOrNull() ?: 0.0
+                    viewModel.guardarInsumo(insumoSeleccionado!!.copy(cantidadActual = c, cantidadMinima = m)) { if (it) insumoSeleccionado = null }
+                }) { Text("Guardar") }
             },
-            dismissButton = { TextButton(onClick = { insumoSeleccionado = null }) { Text("Cancelar", color = Color.Gray) } }
+            dismissButton = {
+                TextButton(onClick = { viewModel.eliminarInsumo(insumoSeleccionado!!.id) { if (it) insumoSeleccionado = null } }) { Text("Eliminar", color = Color.Red) }
+            }
         )
     }
-
-    // --- DIÁLOGO DE SEGURIDAD: ELIMINAR INSUMO ---
-    if (mostrarConfirmarEliminar) {
-        AlertDialog(
-            onDismissRequest = { mostrarConfirmarEliminar = false },
-            title = { Text("¿Eliminar Insumo?", fontWeight = FontWeight.Bold, color = Color(0xFFB91C1C)) },
-            text = { Text("Al eliminar '${insumoSeleccionado?.nombre}', ya no figurará en tus registros de inventario base.") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        listaInsumos = listaInsumos.filterNot { it.id == insumoSeleccionado?.id }
-                        mostrarConfirmarEliminar = false
-                        insumoSeleccionado = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB91C1C))
-                ) { Text("Eliminar") }
-            },
-            dismissButton = { TextButton(onClick = { mostrarConfirmarEliminar = false }) { Text("Cancelar", color = Color.Gray) } }
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GestionInventarioScreenPreview() {
-    GestionInventarioScreen()
 }

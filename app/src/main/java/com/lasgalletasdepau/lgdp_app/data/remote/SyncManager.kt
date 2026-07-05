@@ -60,7 +60,7 @@ class SyncManager(
             batch.update(ref, "stock", prod.stock)
         }
         batch.commit().await()
-        
+
         for (prod in productosNoSincro) {
             appDao.marcarProductoComoSincronizado(prod.productoId)
         }
@@ -138,11 +138,11 @@ class SyncManager(
             for (doc in snapshot.documents) {
                 val pedidoId = doc.id
                 val local = appDao.obtenerPedidoPorId(pedidoId)
-                
+
                 if (local == null || local.sincronizado) {
                     val firebaseTimestamp = doc.getTimestamp("fecha")
                     val firebaseFecha = firebaseTimestamp?.toDate()?.time ?: 0L
-                    
+
                     val pedido = PedidoEntity(
                         pedidoId = pedidoId,
                         numeroPedido = doc.getLong("numeroPedido")?.toInt() ?: 0,
@@ -150,7 +150,7 @@ class SyncManager(
                         estado = EstadoPedido.valueOf(doc.getString("estado") ?: "PENDIENTE"),
                         tipoPedido = TipoPedido.valueOf(doc.getString("tipoPedido") ?: "EN_MESA"),
                         mesaId = doc.getLong("mesaId")?.toInt(),
-                        metodoPago = doc.getString("metodoPago")?.let { 
+                        metodoPago = doc.getString("metodoPago")?.let {
                             try { MetodoPago.valueOf(it) } catch(e: Exception) { null }
                         },
                         nombreCliente = doc.getString("nombreCliente"),
@@ -302,7 +302,7 @@ class SyncManager(
                 "detalles" to detallesArray,
                 "sincronizado" to true
             )
-            
+
             try {
                 pedidoRef.set(datosPedido).await()
                 appDao.marcarPedidoComoSincronizado(pedido.pedidoId)
