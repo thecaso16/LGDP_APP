@@ -15,9 +15,10 @@ import com.lasgalletasdepau.lgdp_app.data.local.entity.*
         ProductoEntity::class,
         PedidoEntity::class,
         PedidoDetalleEntity::class,
-        MesaEntity::class
+        MesaEntity::class,
+        CajaSesionEntity::class
     ],
-    version = 4,
+    version = 7, // Subido por cambio en estructura de UsuarioEntity (rol como String) y nuevas tablas
     exportSchema = false
 )
 @TypeConverters(AppConverters::class)
@@ -36,7 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "galletas_pau_offline_db"
                 )
-                    .fallbackToDestructiveMigration() // Agregado para evitar crashes por cambios de esquema
+                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
                 instance

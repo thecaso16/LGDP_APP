@@ -1,42 +1,38 @@
 package com.lasgalletasdepau.lgdp_app.data.local
 
 import androidx.room.TypeConverter
-import com.lasgalletasdepau.lgdp_app.domain.model.*
+import com.lasgalletasdepau.lgdp_app.domain.model.EstadoMesa
+import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
+import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
+import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
+import com.lasgalletasdepau.lgdp_app.domain.model.TipoPedido
 
 class AppConverters {
-
-    // --- ESTADO MESA ---
     @TypeConverter
-    fun fromEstadoMesa(estado: EstadoMesa?): String? = estado?.name
+    fun fromEstadoMesa(value: EstadoMesa): String = value.name
 
     @TypeConverter
-    fun toEstadoMesa(valor: String?): EstadoMesa? = valor?.let { enumValueOf<EstadoMesa>(it) }
-
-    // --- ESTADO PEDIDO ---
-    @TypeConverter
-    fun fromEstadoPedido(estado: EstadoPedido?): String? = estado?.name
+    fun toEstadoMesa(value: String): EstadoMesa = EstadoMesa.valueOf(value)
 
     @TypeConverter
-    fun toEstadoPedido(valor: String?): EstadoPedido? = valor?.let { enumValueOf<EstadoPedido>(it) }
-
-    // --- TIPO PEDIDO ---
-    @TypeConverter
-    fun fromTipoPedido(tipo: TipoPedido?): String? = tipo?.name
+    fun fromEstadoPedido(value: EstadoPedido?): String? = value?.name
 
     @TypeConverter
-    fun toTipoPedido(valor: String?): TipoPedido? = valor?.let { enumValueOf<TipoPedido>(it) }
-
-    // --- MÉTODOPAGO ---
-    @TypeConverter
-    fun fromMetodoPago(metodo: MetodoPago?): String? = metodo?.name
+    fun toEstadoPedido(value: String?): EstadoPedido? = value?.let { EstadoPedido.valueOf(it) }
 
     @TypeConverter
-    fun toMetodoPago(valor: String?): MetodoPago? = valor?.let { enumValueOf<MetodoPago>(it) }
-
-    // --- ROL USUARIO ---
-    @TypeConverter
-    fun fromRolUsuario(rol: RolUsuario?): String? = rol?.name
+    fun fromTipoPedido(value: TipoPedido): String = value.name
 
     @TypeConverter
-    fun toRolUsuario(valor: String?): RolUsuario? = valor?.let { RolUsuario.fromString(it) }
+    fun toTipoPedido(value: String): TipoPedido = TipoPedido.valueOf(value)
+
+    @TypeConverter
+    fun fromMetodoPago(value: MetodoPago?): String? = value?.name
+
+    @TypeConverter
+    fun toMetodoPago(value: String?): MetodoPago? = value?.let { 
+        try { MetodoPago.valueOf(it) } catch(e: Exception) { null }
+    }
+    
+    // Eliminado el converter de RolUsuario para manejarlo como String simple en la entidad
 }

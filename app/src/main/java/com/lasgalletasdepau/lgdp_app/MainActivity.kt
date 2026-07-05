@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.data.remote.SyncManager
+import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
 import com.lasgalletasdepau.lgdp_app.ui.login.LoginScreen
 import com.lasgalletasdepau.lgdp_app.ui.login.LoginViewModel
 import com.lasgalletasdepau.lgdp_app.ui.theme.LGDP_APPTheme
@@ -31,7 +32,6 @@ class MainActivity : ComponentActivity() {
             networkMonitor.isConnected.collectLatest { estaConectado ->
                 val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
                 if (estaConectado && currentUser != null) {
-                    // Sincroniza automáticamente al detectar internet solo si hay sesión
                     syncManager.sincronizarTodo()
                 }
             }
@@ -44,29 +44,29 @@ class MainActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    var userRole by remember { mutableStateOf<String?>(null) }
+                    var userRoleString by remember { mutableStateOf<String?>(null) }
                     var isLoggedIn by remember { mutableStateOf(false) }
 
                     if (!isLoggedIn) {
                         LoginScreen(
                             viewModel = viewModel,
                             onLoginSuccess = { role ->
-                                userRole = role
+                                userRoleString = role
                                 isLoggedIn = true
-                                // Disparar sincronización al iniciar sesión exitosamente
                                 lifecycleScope.launch {
                                     syncManager.sincronizarTodo()
                                 }
                             }
                         )
                     } else {
-                        // Navegación según el rol
-                        if (userRole == "Administrador") {
+                        val roles = RolUsuario.fromStringList(userRoleString)
+                        
+                        if (roles.contains(RolUsuario.ADMINISTRADOR)) {
                             AdminContainerScreen(
                                 onLogout = {
                                     viewModel.cerrarSesion()
                                     isLoggedIn = false
-                                    userRole = null
+                                    userRoleString = null
                                 }
                             )
                         } else {
@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
                                 onLogout = {
                                     viewModel.cerrarSesion()
                                     isLoggedIn = false
-                                    userRole = null
+                                    userRoleString = null
                                 }
                             )
                         }

@@ -38,7 +38,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     // Si estamos editando un pedido existente
     private var pedidoExistenteId: String? = null
 
-    // Lista de pedidos activos (para la nueva vista solicitada)
+    // Lista de pedidos activos
     private val _pedidosActivos = MutableStateFlow<List<PedidoConDetalles>>(emptyList())
     val pedidosActivos: StateFlow<List<PedidoConDetalles>> = _pedidosActivos
 
@@ -50,7 +50,6 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     private fun observarPedidosActivos() {
         viewModelScope.launch {
             while(true) {
-                // Primero intentamos bajar lo nuevo de Firebase
                 try {
                     syncManager.sincronizarTodo()
                 } catch(e: Exception) {}
@@ -60,7 +59,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     PedidoConDetalles(pedido, appDao.obtenerDetallesPorPedido(pedido.pedidoId))
                 }
                 _pedidosActivos.value = resultado
-                delay(10000) // Cada 10 segundos es suficiente
+                delay(10000)
             }
         }
     }
@@ -77,7 +76,6 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
         _notasGlobales.value = ""
     }
 
-    // Carga un pedido existente para edición
     fun cargarPedidoParaEdicion(mesaId: Int? = null, pedidoId: String? = null) {
         viewModelScope.launch {
             val pedido = if (pedidoId != null) {
@@ -137,10 +135,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun actualizarComentario(productoId: String, comentario: String) {
-        val currentCarrito = _carrito.value.toMutableMap()
-        val detalle = currentCarrito[productoId] ?: return
-        currentCarrito[productoId] = detalle.copy(comentario = comentario)
-        _carrito.value = currentCarrito
+        // Mantenemos la función para no romper compatibilidad, pero ya no se usa en UI
     }
 
     fun actualizarNotasGlobales(notas: String) {
@@ -153,11 +148,15 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
             val idFinal = pedidoExistenteId ?: UUID.randomUUID().toString()
             val total = _carrito.value.values.sumOf { it.cantidad * it.precioUnitario }
 
+            // Buscar si hay una caja abierta para anexar el pedido
+            val cajaAbierta = appDao.obtenerCajaAbiertaSync()
+
             val pedidoActual = if (pedidoExistenteId != null) {
                 appDao.obtenerPedidoPorId(idFinal)?.copy(
                     total = total,
                     usuarioId = user?.uid,
                     notas = _notasGlobales.value,
+                    cajaId = cajaAbierta?.cajaId, // Se asocia a la caja actual
                     sincronizado = false
                 )
             } else {
@@ -173,6 +172,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     total = total,
                     usuarioId = user?.uid,
                     notas = _notasGlobales.value,
+                    cajaId = cajaAbierta?.cajaId, // Se asocia a la caja actual
                     sincronizado = false
                 )
             }
@@ -188,9 +188,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
-            // Sincronizar inmediatamente
             syncManager.sincronizarTodo()
-
             limpiarCarrito()
             onCompletado()
         }

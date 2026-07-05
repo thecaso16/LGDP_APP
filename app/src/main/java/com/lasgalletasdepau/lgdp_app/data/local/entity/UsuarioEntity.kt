@@ -2,7 +2,6 @@ package com.lasgalletasdepau.lgdp_app.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
 
 @Entity(tableName = "usuarios")
 data class UsuarioEntity(
@@ -11,6 +10,6 @@ data class UsuarioEntity(
     val nombres: String?,
     val apellidos: String?,
     val dni: String?,
-    val rol: RolUsuario,
-    val activo: Boolean
+    val rol: String?, // Soporta "Trabajador,Cajero" o roles individuales
+    val activo: Boolean = true
 )

@@ -51,7 +51,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             if (currentUser != null) {
                 val localUser = appDao.obtenerUsuarioLogueado()
                 if (localUser != null) {
-                    _loginState.value = LoginState.Success(localUser.rol.valor)
+                    _loginState.value = LoginState.Success(localUser.rol ?: "Trabajador")
                 } else {
                     // Si hay sesión en Firebase pero no local, recuperamos datos
                     recuperarDatosUsuario(currentUser.uid)
@@ -78,7 +78,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                         nombres = nombres,
                         apellidos = apellidos,
                         dni = dni,
-                        rol = RolUsuario.fromString(rol),
+                        rol = rol,
                         activo = true
                     )
                 )
@@ -117,7 +117,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                                 nombres = document.getString("nombres"),
                                 apellidos = document.getString("apellidos"),
                                 dni = document.getString("dni"),
-                                rol = RolUsuario.fromString(rolObtenido),
+                                rol = rolObtenido,
                                 activo = true
                             )
                         )

@@ -61,8 +61,8 @@ interface AppDao {
     @Query("SELECT * FROM pedidos WHERE estado != 'PAGADO' AND estado != 'CANCELADO' ORDER BY fecha DESC")
     suspend fun obtenerPedidosActivosGenerales(): List<PedidoEntity>
 
-    @Query("SELECT * FROM pedidos WHERE usuarioId = :usuarioId AND fecha >= :inicio AND fecha <= :fin ORDER BY fecha DESC")
-    suspend fun obtenerPedidosPorFechaYUsuario(usuarioId: String, inicio: Long, fin: Long): List<PedidoEntity>
+    @Query("SELECT * FROM pedidos WHERE (usuarioId = :usuarioId OR :verTodo = 1) AND fecha >= :inicio AND fecha <= :fin ORDER BY fecha DESC")
+    suspend fun obtenerPedidosHistorial(usuarioId: String, inicio: Long, fin: Long, verTodo: Int): List<PedidoEntity>
 
     @Query("UPDATE mesas SET estado = 'LIBRE', clienteActivo = NULL, sincronizado = 0 WHERE id = :mesaId")
     suspend fun liberarMesa(mesaId: Int)
@@ -75,18 +75,11 @@ interface AppDao {
 
     @Transaction
     suspend fun finalizarVenta(pedidoId: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago, mesaId: Int?) {
-        // 1. Actualizar Pedido
         actualizarEstadoPedido(pedidoId, "PAGADO", metodo)
-        
-        // 2. Descontar Stock
         val detalles = obtenerDetallesPorPedido(pedidoId)
         detalles.forEach { det ->
-            det.productoId?.let { pid ->
-                descontarStock(pid, det.cantidad)
-            }
+            det.productoId?.let { pid -> descontarStock(pid, det.cantidad) }
         }
-
-        // 3. Liberar Mesa si aplica
         mesaId?.let { liberarMesa(it) }
     }
 
@@ -104,17 +97,14 @@ interface AppDao {
     suspend fun insertarDetallesPedido(detalles: List<PedidoDetalleEntity>)
 
     @Query("SELECT * FROM pedido_detalles WHERE pedidoId = :pedidoId")
-
     suspend fun obtenerDetallesPorPedido(pedidoId: String): List<PedidoDetalleEntity>
+
     @Query("DELETE FROM pedido_detalles WHERE pedidoId = :pedidoId")
     suspend fun eliminarDetallesPorPedido(pedidoId: String)
 
     // --- REPORTES Y CUADRE ---
-    @Query("SELECT SUM(total) FROM pedidos WHERE estado = 'PAGADO' AND metodoPago = :metodo AND fecha >= :inicioTurno")
-    fun observarIngresosPorMetodoPago(metodo: String, inicioTurno: Long): Flow<Double?>
-
-    @Query("SELECT SUM(total) FROM pedidos WHERE estado = 'PAGADO' AND metodoPago = :metodo AND fecha >= :inicioTurno")
-    suspend fun obtenerIngresosPorMetodoPago(metodo: String, inicioTurno: Long): Double?
+    @Query("SELECT SUM(total) FROM pedidos WHERE estado = 'PAGADO' AND metodoPago = :metodo AND fecha >= :inicioTurno AND fecha <= :finTurno")
+    fun observarIngresosCaja(metodo: String, inicioTurno: Long, finTurno: Long): Flow<Double?>
 
     // --- USUARIOS ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -125,4 +115,17 @@ interface AppDao {
 
     @Query("DELETE FROM usuarios")
     suspend fun cerrarSesionLocal()
+
+    // --- SESIONES DE CAJA ---
+    @Query("SELECT * FROM caja_sesiones WHERE fechaCierre IS NULL LIMIT 1")
+    fun obtenerCajaAbierta(): Flow<CajaSesionEntity?>
+
+    @Query("SELECT * FROM caja_sesiones WHERE fechaCierre IS NULL LIMIT 1")
+    suspend fun obtenerCajaAbiertaSync(): CajaSesionEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun abrirCajaLocal(sesion: CajaSesionEntity)
+
+    @Update
+    suspend fun actualizarCajaLocal(sesion: CajaSesionEntity)
 }

@@ -7,6 +7,7 @@ import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
 import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoDetalleEntity
 import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoEntity
 import com.lasgalletasdepau.lgdp_app.data.local.entity.UsuarioEntity
+import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -38,6 +39,11 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
         }
     }
 
+    fun esCajeroOAdmin(): Boolean {
+        val roles = RolUsuario.fromStringList(_usuarioLogueado.value?.rol)
+        return roles.contains(RolUsuario.CAJERO) || roles.contains(RolUsuario.ADMINISTRADOR)
+    }
+
     fun buscarPorRango(fechaInicioStr: String, fechaFinStr: String) {
         val user = _usuarioLogueado.value ?: return
         viewModelScope.launch {
@@ -62,11 +68,13 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
                     set(Calendar.MILLISECOND, 999)
                 }
 
-                // 1. PRIMERO: Bajar historial de Firebase para este rango
+                val verTodo = if (esCajeroOAdmin()) 1 else 0
+
+                // 1. Descargar historial de Firebase si es necesario
                 syncManager.bajarHistorialRango(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
 
-                // 2. SEGUNDO: Leer de la base de datos local (ya actualizada)
-                val pedidos = appDao.obtenerPedidosPorFechaYUsuario(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
+                // 2. Obtener de local
+                val pedidos = appDao.obtenerPedidosHistorial(user.uid, calInicio.timeInMillis, calFin.timeInMillis, verTodo)
                 
                 val resultado = pedidos.map { pedido ->
                     val detalles = appDao.obtenerDetallesPorPedido(pedido.pedidoId)
@@ -81,7 +89,6 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
 
     fun generarCsvData(): String {
         val sb = StringBuilder()
-        // Encabezados solicitados: Cantidad, Productos, Precio Unitario, Subtotal por producto, Total Pedido, Método Pago
         sb.append("Cantidad;Producto;Precio Unitario;Subtotal;Total Pedido;Metodo Pago\n")
         
         _historial.value.forEach { item ->
