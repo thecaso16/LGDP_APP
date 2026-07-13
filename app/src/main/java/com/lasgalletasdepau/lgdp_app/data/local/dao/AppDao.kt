@@ -67,24 +67,35 @@ interface AppDao {
     @Query("UPDATE mesas SET estado = 'LIBRE', clienteActivo = NULL, sincronizado = 0 WHERE id = :mesaId")
     suspend fun liberarMesa(mesaId: Int)
 
-    @Query("UPDATE pedidos SET estado = :nuevoEstado, metodoPago = :metodo, sincronizado = 0 WHERE pedidoId = :pedidoId")
-    suspend fun actualizarEstadoPedido(pedidoId: String, nuevoEstado: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago?)
+    @Query("UPDATE pedidos SET estado = :nuevoEstado, metodoPago = :metodo, fecha = :fechaPago, sincronizado = 0 WHERE pedidoId = :pedidoId")
+    suspend fun actualizarEstadoPedido(pedidoId: String, nuevoEstado: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago?, fechaPago: Long)
 
     @Query("UPDATE pedidos SET estado = 'CANCELADO', sincronizado = 0 WHERE pedidoId = :pedidoId")
     suspend fun anularPedido(pedidoId: String)
 
     @Transaction
     suspend fun finalizarVenta(pedidoId: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago, mesaId: Int?) {
-        actualizarEstadoPedido(pedidoId, "PAGADO", metodo)
+        val ahora = System.currentTimeMillis()
+        actualizarEstadoPedido(pedidoId, "PAGADO", metodo, ahora)
         val detalles = obtenerDetallesPorPedido(pedidoId)
         detalles.forEach { det ->
-            det.productoId?.let { pid -> descontarStock(pid, det.cantidad) }
+            det.productoId?.let { pid -> 
+                descontarStock(pid, det.cantidad) 
+                // Descontar insumos asociados
+                val relaciones = obtenerInsumosPorProducto(pid)
+                relaciones.forEach { rel ->
+                    descontarInsumo(rel.insumoId, rel.cantidadRequerida * det.cantidad)
+                }
+            }
         }
         mesaId?.let { liberarMesa(it) }
     }
 
     @Query("UPDATE productos SET stock = stock - :cantidad, sincronizado = 0 WHERE productoId = :id")
     suspend fun descontarStock(id: String, cantidad: Int)
+
+    @Query("UPDATE insumos SET cantidadActual = cantidadActual - :cantidad, sincronizado = 0 WHERE id = :id")
+    suspend fun descontarInsumo(id: String, cantidad: Double)
 
     @Query("SELECT * FROM productos WHERE sincronizado = 0")
     suspend fun obtenerProductosNoSincronizados(): List<ProductoEntity>
@@ -129,6 +140,28 @@ interface AppDao {
     @Update
     suspend fun actualizarCajaLocal(sesion: CajaSesionEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarCajaDetalle(detalle: CajaDetalleEntity)
+
+    @Query("SELECT * FROM caja_detalles WHERE cajaId = :cajaId")
+    suspend fun obtenerCajaDetalle(cajaId: String): CajaDetalleEntity?
+
     @Query("DELETE FROM caja_sesiones")
     suspend fun limpiarSesionesLocales()
+
+    @Query("DELETE FROM caja_detalles")
+    suspend fun limpiarDetallesLocales()
+
+    // --- INSUMOS ---
+    @Query("SELECT * FROM insumos")
+    fun obtenerInsumos(): Flow<List<InsumoEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarInsumos(insumos: List<InsumoEntity>)
+
+    @Query("SELECT * FROM producto_insumos WHERE productoId = :productoId")
+    suspend fun obtenerInsumosPorProducto(productoId: String): List<ProductoInsumoEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarProductoInsumos(relaciones: List<ProductoInsumoEntity>)
 }

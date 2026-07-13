@@ -7,5 +7,7 @@ data class Usuario(
     val dni: String = "",
     val email: String = "",
     val rol: String = "", // "Administrador" o "Trabajador"
-    val activo: Boolean = true
+    val activo: Boolean = true,
+    val creadoEn: com.google.firebase.Timestamp? = null,
+    val ultimaModificacion: com.google.firebase.Timestamp? = null
 )

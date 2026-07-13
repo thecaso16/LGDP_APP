@@ -42,6 +42,8 @@ class SyncManager(
             bajarMesasDeFirebase()
             bajarCategoriasDeFirebase()
             bajarProductosDeFirebase()
+            bajarInsumosDeFirebase()
+            bajarRelacionesInsumosDeFirebase()
             bajarCajaAbiertaDeFirebase()
             bajarPedidosActivosDeFirebase()
             Log.d("SyncManager", "Sincronización completada con éxito.")
@@ -119,14 +121,53 @@ class SyncManager(
                 imagen = doc.getString("imagen"),
                 precio = doc.getDouble("precio") ?: 0.0,
                 stock = doc.getLong("stock")?.toInt() ?: 0,
+                controlaStock = doc.getBoolean("controlaStock") ?: false,
                 categoriaId = doc.getString("categoriaId"),
                 recomendado = doc.getBoolean("recomendado") ?: false,
+                estaDisponible = doc.getBoolean("estaDisponible") ?: true,
+                activo = doc.getBoolean("activo") ?: true,
                 sincronizado = true,
                 ultimaActualizacion = System.currentTimeMillis(),
                 operacionPendiente = null
             )
         }
         if (productos.isNotEmpty()) appDao.insertarProductos(productos)
+    }
+
+    private suspend fun bajarInsumosDeFirebase() {
+        try {
+            val snapshot = firestore.collection("insumos").get().await()
+            val insumos = snapshot.documents.map { doc ->
+                InsumoEntity(
+                    id = doc.id,
+                    nombre = doc.getString("nombre") ?: "",
+                    cantidadActual = doc.getDouble("cantidadActual") ?: 0.0,
+                    cantidadMinima = doc.getDouble("cantidadMinima") ?: 0.0,
+                    unidadMedida = doc.getString("unidadMedida") ?: "Kg",
+                    categoria = doc.getString("categoria"),
+                    sincronizado = true
+                )
+            }
+            if (insumos.isNotEmpty()) appDao.insertarInsumos(insumos)
+        } catch (e: Exception) {
+            Log.e("SyncManager", "Error bajando insumos: ${e.message}")
+        }
+    }
+
+    private suspend fun bajarRelacionesInsumosDeFirebase() {
+        try {
+            val snapshot = firestore.collection("producto_insumos").get().await()
+            val relaciones = snapshot.documents.map { doc ->
+                ProductoInsumoEntity(
+                    productoId = doc.getString("productoId") ?: "",
+                    insumoId = doc.getString("insumoId") ?: "",
+                    cantidadRequerida = doc.getDouble("cantidadRequerida") ?: 0.0
+                )
+            }
+            if (relaciones.isNotEmpty()) appDao.insertarProductoInsumos(relaciones)
+        } catch (e: Exception) {
+            Log.e("SyncManager", "Error bajando relaciones insumos: ${e.message}")
+        }
     }
 
     private suspend fun bajarPedidosActivosDeFirebase() {
@@ -200,10 +241,6 @@ class SyncManager(
                     nombreCajero = doc.getString("usuarioCajeroNombre") ?: "Desconocido",
                     fechaApertura = doc.getTimestamp("fechaApertura")?.toDate()?.time ?: System.currentTimeMillis(),
                     montoApertura = doc.getDouble("montoApertura") ?: 0.0,
-                    fechaCierre = null,
-                    egresos = 0.0,
-                    montoFisicoReal = 0.0,
-                    justificacion = null,
                     estado = "ABIERTA",
                     sincronizado = true
                 )

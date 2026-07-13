@@ -10,10 +10,6 @@ data class CajaSesionEntity(
     val nombreCajero: String,
     val fechaApertura: Long,
     val montoApertura: Double,
-    val fechaCierre: Long? = null,
-    val egresos: Double = 0.0,
-    val montoFisicoReal: Double = 0.0,
-    val justificacion: String? = null,
     val estado: String = "ABIERTA", // "ABIERTA" o "CERRADA"
     val sincronizado: Boolean = false
 )

@@ -143,7 +143,8 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                         mesaSeleccionadaId = null
                         pantallaActual = 2
                     },
-                    onRegresar = { pantallaActual = 0 }
+                    onRegresar = { pantallaActual = 0 },
+                    onLogout = onLogout
                 )
                 2 -> DetalleMesaScreen(
                     mesaId = mesaSeleccionadaId,
@@ -154,19 +155,23 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                         pantallaActual = 5
                     },
                     onRegresarAlSalon = { pantallaActual = 0 },
-                    onIrAHistorial = { pantallaActual = 4 }
+                    onIrAHistorial = { pantallaActual = 4 },
+                    onLogout = onLogout
                 )
                 3 -> CuadreCajaScreen(
-                    onRegresar = { pantallaActual = 0 }
+                    onRegresar = { pantallaActual = 0 },
+                    onLogout = onLogout
                 )
                 4 -> ReportesTrabajadoresScreen(
-                    onIrACierreCaja = { pantallaActual = 3 }
+                    onIrACierreCaja = { pantallaActual = 3 },
+                    onLogout = onLogout
                 )
                 5 -> PedidoScreen(
                     mesaId = mesaSeleccionadaId,
                     pedidoId = pedidoSeleccionadoId,
                     clienteNombre = clienteNombreSeleccionado,
-                    onBackToSalon = { pantallaActual = 0 }
+                    onBackToSalon = { pantallaActual = 0 },
+                    onLogout = onLogout
                 )
             }
         }

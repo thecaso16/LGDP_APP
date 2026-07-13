@@ -35,6 +35,9 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     private val _notasGlobales = MutableStateFlow("")
     val notasGlobales: StateFlow<String> = _notasGlobales
 
+    private val _errorEvent = MutableSharedFlow<String>()
+    val errorEvent: SharedFlow<String> = _errorEvent
+
     // Si estamos editando un pedido existente
     private var pedidoExistenteId: String? = null
 
@@ -96,17 +99,44 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun agregarProducto(producto: ProductoEntity) {
-        val currentCarrito = _carrito.value.toMutableMap()
-        val detalleExistente = currentCarrito[producto.productoId]
+        viewModelScope.launch {
+            val currentCarrito = _carrito.value.toMutableMap()
+            val detalleExistente = currentCarrito[producto.productoId]
+            val nuevaCantidad = (detalleExistente?.cantidad ?: 0) + 1
 
-        if (detalleExistente != null) {
-            if (detalleExistente.cantidad < producto.stock) {
-                currentCarrito[producto.productoId] = detalleExistente.copy(
-                    cantidad = detalleExistente.cantidad + 1
-                )
+            // 1. Si controla stock, primero vemos si hay stock físico ya preparado
+            if (producto.controlaStock) {
+                if (nuevaCantidad > producto.stock) {
+                    // Si ya no hay stock preparado, intentamos ver si se puede "hacer" más con insumos? 
+                    // El usuario dice: "mas no aumentar porque ya no queda harina"
+                    // Interpretación: Si hay stock, se vende. Si se acaba el stock, se bloquea si no hay insumos.
+                    // Pero usualmente si "controlaStock" es true, es que es algo ya hecho.
+                    _errorEvent.emit("Stock insuficiente de ${producto.nombre}")
+                    return@launch
+                }
+                // Si hay stock preparado, no validamos insumos (ya se usaron)
+            } else {
+                // 2. Si NO controla stock (ej. Café hecho al momento), validamos insumos
+                val relaciones = appDao.obtenerInsumosPorProducto(producto.productoId)
+                if (relaciones.isNotEmpty()) {
+                    val todosInsumos = appDao.obtenerInsumos().first()
+                    for (rel in relaciones) {
+                        val insumo = todosInsumos.find { it.id == rel.insumoId }
+                        if (insumo != null) {
+                            val cantidadRequeridaTotal = rel.cantidadRequerida * nuevaCantidad
+                            if (insumo.cantidadActual < cantidadRequeridaTotal) {
+                                _errorEvent.emit("Falta insumo: ${insumo.nombre}")
+                                return@launch
+                            }
+                        }
+                    }
+                }
             }
-        } else {
-            if (producto.stock > 0) {
+
+            // 3. Agregar al carrito
+            if (detalleExistente != null) {
+                currentCarrito[producto.productoId] = detalleExistente.copy(cantidad = nuevaCantidad)
+            } else {
                 currentCarrito[producto.productoId] = PedidoDetalleEntity(
                     pedidoId = pedidoExistenteId ?: "", 
                     productoId = producto.productoId,
@@ -116,8 +146,8 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     comentario = ""
                 )
             }
+            _carrito.value = currentCarrito
         }
-        _carrito.value = currentCarrito
     }
 
     fun quitarProducto(productoId: String) {

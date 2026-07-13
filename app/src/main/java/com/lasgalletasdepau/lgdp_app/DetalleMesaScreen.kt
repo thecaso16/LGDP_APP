@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.*
@@ -30,6 +31,7 @@ fun DetalleMesaScreen(
     onIrAPedidoEdicion: (Int?, String?) -> Unit,
     onRegresarAlSalon: () -> Unit,
     onIrAHistorial: () -> Unit,
+    onLogout: () -> Unit,
     viewModel: DetalleMesaViewModel = viewModel()
 ) {
     val pedido by viewModel.pedido.collectAsState()
@@ -54,6 +56,11 @@ fun DetalleMesaScreen(
                 navigationIcon = {
                     IconButton(onClick = onRegresarAlSalon) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))

@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.PointOfSale
@@ -35,8 +36,9 @@ import java.util.*
 @Composable
 fun ReportesTrabajadoresScreen(
     onIrACierreCaja: () -> Unit,
+    onLogout: () -> Unit,
     viewModel: ReportesTrabajadoresViewModel = viewModel(),
-    cajaViewModel: CajaViewModel = viewModel() // Necesitamos acceso al estado de caja
+    cajaViewModel: CajaViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val historial by viewModel.historial.collectAsState()
@@ -49,303 +51,139 @@ fun ReportesTrabajadoresScreen(
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
 
-    val datePickerStateStart = rememberDatePickerState(
-        initialSelectedDateMillis = System.currentTimeMillis()
-    )
-    val datePickerStateEnd = rememberDatePickerState(
-        initialSelectedDateMillis = System.currentTimeMillis()
-    )
+    val datePickerStateStart = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    val datePickerStateEnd = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
 
-    var fechaInicioStr by remember { 
-        mutableStateOf(sdf.format(Date(datePickerStateStart.selectedDateMillis!!))) 
-    }
-    var fechaFinStr by remember { 
-        mutableStateOf(sdf.format(Date(datePickerStateEnd.selectedDateMillis!!))) 
+    fun getCorrectedMillis(utcMillis: Long?): Long {
+        if (utcMillis == null) return System.currentTimeMillis()
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        calendar.timeInMillis = utcMillis
+        val localCalendar = Calendar.getInstance()
+        localCalendar.set(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH), 0, 0, 0)
+        return localCalendar.timeInMillis
     }
 
-    var pedidoSeleccionado by remember { mutableStateOf<PedidoConDetalles?>(null) }
-    
-    // Un usuario puede exportar SOLO si es el cajero que abrió la caja actual
-    val esCajeroResponsable = usuario?.uid != null && usuario?.uid == cajaAbierta?.usuarioCajeroId
-
-    // Cargar datos iniciales
-    LaunchedEffect(usuario) {
+    // Búsqueda automática cuando cambian las fechas
+    LaunchedEffect(datePickerStateStart.selectedDateMillis, datePickerStateEnd.selectedDateMillis, usuario) {
         if (usuario != null) {
-            viewModel.buscarPorRango(fechaInicioStr, fechaFinStr)
+            val startStr = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))
+            val endStr = sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))
+            viewModel.buscarPorRango(startStr, endStr)
         }
     }
 
     if (showStartDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showStartDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerStateStart.selectedDateMillis?.let {
-                        fechaInicioStr = sdf.format(Date(it))
-                    }
-                    showStartDatePicker = false
-                }) { Text("Aceptar") }
-            }
-        ) {
-            DatePicker(state = datePickerStateStart)
-        }
+            confirmButton = { TextButton(onClick = { showStartDatePicker = false }) { Text("Aceptar") } }
+        ) { DatePicker(state = datePickerStateStart) }
     }
 
     if (showEndDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showEndDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerStateEnd.selectedDateMillis?.let {
-                        fechaFinStr = sdf.format(Date(it))
-                    }
-                    showEndDatePicker = false
-                }) { Text("Aceptar") }
-            }
-        ) {
-            DatePicker(state = datePickerStateEnd)
-        }
+            confirmButton = { TextButton(onClick = { showEndDatePicker = false }) { Text("Aceptar") } }
+        ) { DatePicker(state = datePickerStateEnd) }
     }
+
+    val esCajeroResponsable = usuario?.uid != null && usuario?.uid == cajaAbierta?.usuarioCajeroId
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Historial de Transacciones 📋", fontWeight = FontWeight.ExtraBold, color = Color.White) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D)),
-                actions = {
+                navigationIcon = {
                     IconButton(onClick = onIrACierreCaja) {
-                        Icon(
-                            imageVector = Icons.Default.PointOfSale,
-                            contentDescription = "Cierre de Caja",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.PointOfSale, "Cierre de Caja", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
                     }
                 }
             )
         },
         floatingActionButton = {
-            // SOLO el cajero responsable puede ver el botón de exportar
             if (historial.isNotEmpty() && esCajeroResponsable) {
                 ExtendedFloatingActionButton(
                     onClick = {
+                        val startStr = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))
                         val csvData = viewModel.generarCsvData()
-                        val file = File(context.cacheDir, "Reporte_Ventas_${fechaInicioStr.replace("/", "-")}.csv")
+                        val file = File(context.cacheDir, "Reporte_Ventas_${startStr.replace("/", "-")}.csv")
                         try {
                             FileOutputStream(file).use { it.write(csvData.toByteArray()) }
-                            val uri = androidx.core.content.FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.fileprovider",
-                                file
-                            )
+                            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 type = "text/csv"
                                 putExtra(Intent.EXTRA_STREAM, uri)
                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
                             context.startActivity(Intent.createChooser(intent, "Exportar Reporte Excel (CSV)"))
-                        } catch (e: Exception) {
-                            // Error al exportar
-                        }
+                        } catch (e: Exception) {}
                     },
                     containerColor = Color(0xFF10B981),
                     contentColor = Color.White,
                     shape = RoundedCornerShape(16.dp)
                 ) {
-                    Icon(Icons.Default.FileDownload, contentDescription = "Exportar")
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.FileDownload, null)
+                    Spacer(Modifier.width(8.dp))
                     Text("Exportar Reporte 📊", fontWeight = FontWeight.Bold)
                 }
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
-        ) {
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(1.dp)
-            ) {
+        Column(modifier = Modifier.fillMaxSize().padding(innerPadding).background(Color(0xFFF8FAFC))) {
+            Card(modifier = Modifier.fillMaxWidth().padding(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(1.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Rango de Búsqueda",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Color(0xFF1E233D)
-                    )
+                    Text("Rango de Búsqueda", fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
-                            value = fechaInicioStr,
+                            value = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis))),
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Desde") },
-                            trailingIcon = { 
-                                IconButton(onClick = { showStartDatePicker = true }) {
-                                    Icon(Icons.Default.CalendarMonth, contentDescription = null)
-                                }
-                            },
-                            modifier = Modifier.weight(1f).clickable { showStartDatePicker = true },
-                            shape = RoundedCornerShape(10.dp)
+                            trailingIcon = { IconButton(onClick = { showStartDatePicker = true }) { Icon(Icons.Default.CalendarMonth, null) } },
+                            modifier = Modifier.weight(1f).clickable { showStartDatePicker = true }
                         )
-
                         OutlinedTextField(
-                            value = fechaFinStr,
+                            value = sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis))),
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Hasta") },
-                            trailingIcon = { 
-                                IconButton(onClick = { showEndDatePicker = true }) {
-                                    Icon(Icons.Default.CalendarMonth, contentDescription = null)
-                                }
-                            },
-                            modifier = Modifier.weight(1f).clickable { showEndDatePicker = true },
-                            shape = RoundedCornerShape(10.dp)
+                            trailingIcon = { IconButton(onClick = { showEndDatePicker = true }) { Icon(Icons.Default.CalendarMonth, null) } },
+                            modifier = Modifier.weight(1f).clickable { showEndDatePicker = true }
                         )
-                    }
-                    
-                    Button(
-                        onClick = { viewModel.buscarPorRango(fechaInicioStr, fechaFinStr) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("Buscar Historial")
                     }
                 }
             }
 
-            Text(
-                text = "Movimientos Encontrados (${historial.size})",
-                fontWeight = FontWeight.Bold,
-                fontSize = 15.sp,
-                color = Color(0xFF1E233D),
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
+            Text("Movimientos Encontrados (${historial.size})", fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp))
 
             if (historial.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay transacciones registradas.", color = Color.Gray)
-                }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No hay transacciones registradas.", color = Color.Gray) }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(historial) { item ->
                         val pedido = item.pedido
                         val timeSdf = remember(locale) { SimpleDateFormat("hh:mm a", locale) }
                         val hora = if (pedido.fecha != null) timeSdf.format(Date(pedido.fecha)) else "--:--"
                         val fechaStr = if (pedido.fecha != null) sdf.format(Date(pedido.fecha)) else ""
 
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            shape = RoundedCornerShape(14.dp),
-                            elevation = CardDefaults.cardElevation(1.dp),
-                            modifier = Modifier.fillMaxWidth().clickable { pedidoSeleccionado = item }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                        Card(colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(14.dp), elevation = CardDefaults.cardElevation(1.dp), modifier = Modifier.fillMaxWidth().clickable { /* detalle */ }) {
+                            Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = "Pedido #${pedido.numeroPedido}", fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
-                                    Text(text = "$fechaStr • $hora", fontSize = 12.sp, color = Color.Gray)
-                                    Text(text = "Mesa: ${pedido.mesaId ?: "Llevar"}", fontSize = 11.sp, color = Color(0xFF64748B))
+                                    Text("Pedido #${pedido.numeroPedido}", fontWeight = FontWeight.Bold)
+                                    Text("$fechaStr • $hora", fontSize = 12.sp, color = Color.Gray)
                                 }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(
-                                        text = "S/ ${String.format("%.2f", pedido.total)}",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = Color(0xFF1E233D)
-                                    )
-                                    val estadoTexto = when(pedido.estado?.name) {
-                                        "PAGADO" -> pedido.metodoPago?.valor ?: "Pagado"
-                                        "CANCELADO" -> "ANULADO ❌"
-                                        "PENDIENTE" -> "Pendiente ⏳"
-                                        else -> pedido.estado?.name ?: "Desconocido"
-                                    }
-                                    val estadoColor = when(pedido.estado?.name) {
-                                        "PAGADO" -> Color(0xFF10B981)
-                                        "CANCELADO" -> Color(0xFFEF4444)
-                                        else -> Color(0xFFF59E0B)
-                                    }
-                                    Text(
-                                        text = estadoTexto,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = estadoColor
-                                    )
-                                }
+                                Text("S/ ${String.format(locale, "%.2f", pedido.total)}", fontWeight = FontWeight.ExtraBold)
                             }
                         }
                     }
                 }
             }
         }
-    }
-
-    if (pedidoSeleccionado != null) {
-        val item = pedidoSeleccionado!!
-        val pedido = item.pedido
-        val detalles = item.detalles
-        
-        AlertDialog(
-            onDismissRequest = { pedidoSeleccionado = null },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = Color.White,
-            title = {
-                Column {
-                    Text(text = "Detalle del Pedido #${pedido.numeroPedido}", fontWeight = FontWeight.Black, fontSize = 18.sp, color = Color(0xFF1E233D))
-                }
-            },
-            text = {
-                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
-
-                    Text(text = "Estado: ${pedido.estado?.name ?: "S/D"}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if(pedido.estado?.name == "CANCELADO") Color.Red else Color.DarkGray)
-                    Text(text = "Método de Pago: ${pedido.metodoPago?.valor ?: "No aplica"}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF475569))
-                    Text(text = "Cliente: ${pedido.nombreCliente ?: "General"}", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF475569))
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Productos:", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF1E233D))
-
-                    detalles.forEach { prod ->
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "${prod.cantidad}x ${prod.nombreProducto}", fontSize = 13.sp, color = Color(0xFF1E233D))
-                            Text(text = "S/ ${String.format("%.2f", prod.precioUnitario * prod.cantidad)}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Total Neto:", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF1E233D))
-                        Text(text = "S/ ${String.format("%.2f", pedido.total)}", fontWeight = FontWeight.ExtraBold, fontSize = 16.sp, color = Color(0xFF1E233D))
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { pedidoSeleccionado = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("Cerrar")
-                }
-            }
-        )
     }
 }

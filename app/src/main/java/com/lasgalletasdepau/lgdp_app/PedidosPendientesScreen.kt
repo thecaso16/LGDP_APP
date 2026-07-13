@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +29,7 @@ import java.util.*
 fun PedidosPendientesScreen(
     onVerDetalle: (String) -> Unit,
     onRegresar: () -> Unit,
+    onLogout: () -> Unit,
     viewModel: PedidoViewModel = viewModel()
 ) {
     val pedidosActivos by viewModel.pedidosActivos.collectAsState()
@@ -41,6 +43,11 @@ fun PedidosPendientesScreen(
                 navigationIcon = {
                     IconButton(onClick = onRegresar) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))

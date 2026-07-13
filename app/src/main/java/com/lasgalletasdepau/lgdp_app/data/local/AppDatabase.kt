@@ -16,9 +16,12 @@ import com.lasgalletasdepau.lgdp_app.data.local.entity.*
         PedidoEntity::class,
         PedidoDetalleEntity::class,
         MesaEntity::class,
-        CajaSesionEntity::class
+        CajaSesionEntity::class,
+        CajaDetalleEntity::class,
+        InsumoEntity::class,
+        ProductoInsumoEntity::class
     ],
-    version = 8, // Incrementado por cambios de esquema pendientes y nuevas funcionalidades de caja
+    version = 12, // Incrementado por CajaDetalleEntity
     exportSchema = false
 )
 @TypeConverters(AppConverters::class)

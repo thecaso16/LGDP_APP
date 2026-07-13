@@ -112,39 +112,55 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
         val esperadoFisico = apert + efectivoSistema.value - egre
         val diferencia = fisic - esperadoFisico
 
-        val sesionCerrada = sesion.copy(
-            fechaCierre = System.currentTimeMillis(),
+        val ahora = System.currentTimeMillis()
+
+        // Crear el detalle para Room (Normalizado)
+        val detalleCaja = com.lasgalletasdepau.lgdp_app.data.local.entity.CajaDetalleEntity(
+            cajaId = sesion.cajaId,
+            fechaCierre = ahora,
             egresos = egre,
+            ingresosEfectivo = efectivoSistema.value,
+            ingresosIzipay = izipaySistema.value,
+            ingresosYape = yapeSistema.value,
+            totalVentas = totalVentas,
+            esperadoFisico = esperadoFisico,
             montoFisicoReal = fisic,
-            justificacion = justificacion,
-            estado = "CERRADA",
-            sincronizado = false
+            diferencia = diferencia,
+            justificacion = justificacion
         )
 
         val cierreData = hashMapOf(
-            "cajaId" to sesionCerrada.cajaId,
-            "fechaApertura" to Timestamp(Date(sesionCerrada.fechaApertura)),
-            "fechaCierre" to Timestamp(Date(sesionCerrada.fechaCierre!!)),
-            "usuarioCajeroId" to user.uid, // Campo clave para las reglas de Firebase
-            "usuarioCajeroNombre" to sesionCerrada.nombreCajero,
-            "montoApertura" to apert,
-            "ingresosEfectivo" to efectivoSistema.value,
-            "ingresosYape" to yapeSistema.value,
-            "ingresosIzipay" to izipaySistema.value,
-            "totalVentas" to totalVentas,
-            "egresos" to egre,
-            "montoFisicoReal" to fisic,
-            "esperadoFisico" to esperadoFisico,
+            "cajaId" to sesion.cajaId,
             "diferencia" to diferencia,
-            "justificacion" to (justificacion ?: ""),
+            "egresos" to egre,
+            "esperadoFisico" to esperadoFisico,
             "estado" to "CERRADA",
+            "fecha" to Timestamp(Date(ahora)),
+            "fechaApertura" to Timestamp(Date(sesion.fechaApertura)),
+            "fechaCierre" to Timestamp(Date(ahora)),
+            "ingresosEfectivo" to efectivoSistema.value,
+            "ingresosIzipay" to izipaySistema.value,
+            "ingresosYape" to yapeSistema.value,
+            "justificacion" to (justificacion ?: ""),
+            "montoApertura" to apert,
+            "montoFisicoReal" to fisic,
+            "totalVentas" to totalVentas,
+            "usuarioCajeroId" to sesion.usuarioCajeroId,
+            "usuarioCajeroNombre" to sesion.nombreCajero,
+            "usuarioId" to user.uid,
+            "usuarioNombre" to "${user.nombres} ${user.apellidos}",
             "resultadoBalance" to if (Math.abs(diferencia) < 0.01) "CUADRADO" else "DESCUADRADO"
         )
 
         return try {
-            firestore.collection("cierres_caja").document(sesionCerrada.cajaId).set(cierreData).await()
-            // Limpieza local forzada tras éxito en Firebase
+            firestore.collection("cierres_caja").document(sesion.cajaId).set(cierreData).await()
+            // Guardar localmente el detalle antes de limpiar (opcional si se limpiatodo)
+            appDao.insertarCajaDetalle(detalleCaja)
+            appDao.actualizarCajaLocal(sesion.copy(estado = "CERRADA"))
+            
+            // Limpieza local forzada tras éxito en Firebase para permitir nueva apertura
             appDao.limpiarSesionesLocales()
+            appDao.limpiarDetallesLocales()
             
             montoApertura.value = ""
             egresos.value = ""

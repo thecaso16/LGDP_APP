@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -35,6 +36,7 @@ fun PedidoScreen(
     pedidoId: String? = null,
     clienteNombre: String? = null,
     onBackToSalon: () -> Unit = {},
+    onLogout: () -> Unit,
     viewModel: PedidoViewModel = viewModel()
 ) {
     val usuarioLogueado by viewModel.usuarioLogueado.collectAsState()
@@ -45,6 +47,13 @@ fun PedidoScreen(
 
     var pestanaActiva by remember { mutableStateOf(0) }
     var categoriaSeleccionadaId by remember { mutableStateOf<String?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.errorEvent.collect { error ->
+            snackbarHostState.showSnackbar(error)
+        }
+    }
 
     LaunchedEffect(categorias) {
         if (categoriaSeleccionadaId == null && categorias.isNotEmpty()) {
@@ -66,6 +75,7 @@ fun PedidoScreen(
     val totalAcumulado = carrito.values.sumOf { it.cantidad * it.precioUnitario }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Tomar Pedido 📋", fontWeight = FontWeight.Bold, color = Color.White) },
@@ -75,6 +85,11 @@ fun PedidoScreen(
                         onBackToSalon()
                     }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))

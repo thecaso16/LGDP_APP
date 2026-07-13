@@ -4,13 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoEntity
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.util.Calendar
+import java.util.*
 
 data class ProductoEstadistica(
     val nombre: String,
@@ -33,13 +32,33 @@ class ReportesNegocioViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    fun cargarReporte(fechaInicio: Long, fechaFin: Long) {
+    fun cargarReporte(fechaInicioMillis: Long, fechaFinMillis: Long) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // NORMALIZAR FECHAS:
+                // Inicio: 00:00:00.000
+                val calInicio = Calendar.getInstance().apply {
+                    timeInMillis = fechaInicioMillis
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                // Fin: 23:59:59.999
+                val calFin = Calendar.getInstance().apply {
+                    timeInMillis = fechaFinMillis
+                    set(Calendar.HOUR_OF_DAY, 23)
+                    set(Calendar.MINUTE, 59)
+                    set(Calendar.SECOND, 59)
+                    set(Calendar.MILLISECOND, 999)
+                }
+
                 val snapshot = firestore.collection("pedidos")
-                    .whereGreaterThanOrEqualTo("fecha", Timestamp(java.util.Date(fechaInicio)))
-                    .whereLessThanOrEqualTo("fecha", Timestamp(java.util.Date(fechaFin)))
+                    .whereEqualTo("estado", "PAGADO")
+                    .whereGreaterThanOrEqualTo("fecha", Timestamp(calInicio.time))
+                    .whereLessThanOrEqualTo("fecha", Timestamp(calFin.time))
                     .get().await()
 
                 var ingresos = 0.0
@@ -47,17 +66,14 @@ class ReportesNegocioViewModel : ViewModel() {
                 val conteoProductos = mutableMapOf<String, Int>()
 
                 for (doc in snapshot.documents) {
-                    val estado = doc.getString("estado")
-                    if (estado == EstadoPedido.PAGADO.name) {
-                        ingresos += doc.getDouble("total") ?: 0.0
-                        pedidosCont++
+                    ingresos += doc.getDouble("total") ?: 0.0
+                    pedidosCont++
                         
-                        val detalles = doc.get("detalles") as? List<Map<String, Any>>
-                        detalles?.forEach { det ->
-                            val nombre = det["nombreProducto"] as? String ?: "Desconocido"
-                            val cant = (det["cantidad"] as? Long)?.toInt() ?: 0
-                            conteoProductos[nombre] = (conteoProductos[nombre] ?: 0) + cant
-                        }
+                    val detalles = doc.get("detalles") as? List<Map<String, Any>>
+                    detalles?.forEach { det ->
+                        val nombre = det["nombreProducto"] as? String ?: "Desconocido"
+                        val cant = (det["cantidad"] as? Long)?.toInt() ?: 0
+                        conteoProductos[nombre] = (conteoProductos[nombre] ?: 0) + cant
                     }
                 }
 

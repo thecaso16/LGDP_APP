@@ -9,8 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,7 +34,11 @@ import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewModel()) {
+fun CuadreCajaScreen(
+    onRegresar: () -> Unit,
+    onLogout: () -> Unit,
+    viewModel: CajaViewModel = viewModel()
+) {
     val context = LocalContext.current
     val user by viewModel.usuarioLogueado.collectAsState()
     val cajaSesion by viewModel.cajaSesion.collectAsState()
@@ -77,6 +80,11 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
                 navigationIcon = {
                     IconButton(onClick = onRegresar) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
@@ -141,13 +149,15 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
             } else {
                 // Pantalla de CIERRE
                 val esElCajeroResponsable = user?.uid == cajaSesion?.usuarioCajeroId
+                val esAdmin = user?.rol?.contains("Administrador") == true
+                val puedeCerrar = esElCajeroResponsable || esAdmin
 
                 item {
                     Text(text = "1. Configuración de Caja", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(
-                                value = String.format("S/. %.2f", cajaSesion!!.montoApertura),
+                                value = String.format(locale, "S/. %.2f", cajaSesion!!.montoApertura),
                                 onValueChange = {},
                                 label = { Text("Monto de Apertura") },
                                 readOnly = true,
@@ -156,9 +166,9 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
                             )
                             OutlinedTextField(
                                 value = egresos,
-                                onValueChange = { if(esElCajeroResponsable) viewModel.egresos.value = it },
+                                onValueChange = { if(puedeCerrar) viewModel.egresos.value = it },
                                 label = { Text("Egresos / Salidas (S/.)") },
-                                readOnly = !esElCajeroResponsable,
+                                readOnly = !puedeCerrar,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
@@ -171,13 +181,13 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
                     Text(text = "2. Ventas del Turno (Sistema)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            FilaResumenCaja("Ventas Efectivo", efectivo)
-                            FilaResumenCaja("Ventas Yape/Plin", yape)
-                            FilaResumenCaja("Ventas Izipay", izipay)
+                            FilaResumenCaja("Ventas Efectivo", efectivo, locale)
+                            FilaResumenCaja("Ventas Yape/Plin", yape, locale)
+                            FilaResumenCaja("Ventas Izipay", izipay, locale)
                             HorizontalDivider(color = Color(0xFFF1F5F9))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 Text("Total Ventas", fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
-                                Text(String.format("S/. %.2f", totalSistema), fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
+                                Text(String.format(locale, "S/. %.2f", totalSistema), fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
                             }
                         }
                     }
@@ -190,9 +200,9 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
                             Text(text = "¿Cuánto efectivo real hay en caja?", fontSize = 14.sp, color = Color(0xFF475569))
                             OutlinedTextField(
                                 value = montoRealInput,
-                                onValueChange = { if(esElCajeroResponsable) viewModel.montoRealFisico.value = it },
+                                onValueChange = { if(puedeCerrar) viewModel.montoRealFisico.value = it },
                                 placeholder = { Text("S/. 0.00") },
-                                readOnly = !esElCajeroResponsable,
+                                readOnly = !puedeCerrar,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                                 shape = RoundedCornerShape(12.dp)
@@ -201,10 +211,10 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
                                 Surface(
                                     color = Color(0xFF3B82F6).copy(alpha = 0.1f),
                                     shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clickable(enabled = esElCajeroResponsable) { mostrarDialogoJustificacion = true }
+                                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clickable(enabled = puedeCerrar) { mostrarDialogoJustificacion = true }
                                 ) {
                                     Text(
-                                        text = if (justificacionDescuadre.isBlank()) "⚠️ Descuadre detectado (S/. ${String.format("%.2f", diferencia)}). Toca para justificar." else "📝 Justificación añadida",
+                                        text = if (justificacionDescuadre.isBlank()) "⚠️ Descuadre detectado (S/. ${String.format(locale, "%.2f", diferencia)}). Toca para justificar." else "📝 Justificación añadida",
                                         color = Color(0xFF1D4ED8), fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(12.dp)
                                     )
                                 }
@@ -213,19 +223,21 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
                     }
                 }
 
-                if (esElCajeroResponsable) {
+                if (puedeCerrar) {
                     item {
                         Button(
                             onClick = {
                                 val csv = "Concepto;Monto\nApertura;${cajaSesion?.montoApertura}\nEgresos;${egresos}\nEfectivo;${efectivo}\nYape;${yape}\nIzipay;${izipay}\nEsperado;${esperadoFisico}\nReal;${montoRealDouble}\nDiferencia;${diferencia}"
                                 val file = File(context.cacheDir, "Cierre_${dateFormat.format(Date()).replace("/", "-")}.csv")
-                                FileOutputStream(file).use { it.write(csv.toByteArray()) }
-                                val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                                context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/csv"
-                                    putExtra(Intent.EXTRA_STREAM, uri)
-                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                }, "Exportar Cierre"))
+                                try {
+                                    FileOutputStream(file).use { it.write(csv.toByteArray()) }
+                                    val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/csv"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }, "Exportar Cierre"))
+                                } catch (e: Exception) {}
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
@@ -272,9 +284,9 @@ fun CuadreCajaScreen(onRegresar: () -> Unit, viewModel: CajaViewModel = viewMode
 }
 
 @Composable
-fun FilaResumenCaja(concepto: String, monto: Double) {
+fun FilaResumenCaja(concepto: String, monto: Double, locale: Locale) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(text = concepto, color = Color(0xFF64748B), fontSize = 14.sp)
-        Text(text = String.format("S/. %.2f", monto), fontWeight = FontWeight.SemiBold, color = Color(0xFF1E233D))
+        Text(text = String.format(locale, "S/. %.2f", monto), fontWeight = FontWeight.SemiBold, color = Color(0xFF1E233D))
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -30,7 +31,10 @@ import com.lasgalletasdepau.lgdp_app.ui.admin.GestionInventarioViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GestionInventarioScreen(viewModel: GestionInventarioViewModel = viewModel()) {
+fun GestionInventarioScreen(
+    viewModel: GestionInventarioViewModel = viewModel(),
+    onLogout: () -> Unit
+) {
     val insumos by viewModel.insumos.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
@@ -51,6 +55,15 @@ fun GestionInventarioScreen(viewModel: GestionInventarioViewModel = viewModel())
         topBar = {
             TopAppBar(
                 title = { Text("Inventario de Insumos 📦", fontWeight = FontWeight.ExtraBold, color = Color.White) },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
+                            contentDescription = "Cerrar Sesión",
+                            tint = Color.White
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
             )
         },

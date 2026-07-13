@@ -30,30 +30,6 @@ fun AdminContainerScreen(onLogout: () -> Unit) {
     var pantallaActual by remember { mutableStateOf(2) }
 
     Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "Panel Administrador",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Cerrar Sesión",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1E233D),
-                    titleContentColor = Color.White
-                )
-            )
-        },
         bottomBar = {
             NavigationBar(
                 containerColor = Color(0xFF1E233D), // Nuestro Navy institucional
@@ -133,14 +109,11 @@ fun AdminContainerScreen(onLogout: () -> Unit) {
                 .padding(innerPadding)
         ) {
             when (pantallaActual) {
-                0 -> GestionUsuariosScreen()
-                1 -> GestionCatalogoScreen()
-                // AQUÍ CONECTAMOS TU NUEVA PANTALLA
-                2 -> GestionInventarioScreen()
-                3 -> ReportesNegocioScreen()
-                4 -> ReportesTrabajadoresScreen(
-                    onIrACierreCaja = { pantallaActual = 3 } // Podría ir a reportes de negocio o similar
-                )
+                0 -> GestionUsuariosScreen(onLogout = onLogout)
+                1 -> GestionCatalogoScreen(onLogout = onLogout)
+                2 -> GestionInventarioScreen(onLogout = onLogout)
+                3 -> ReportesNegocioScreen(onLogout = onLogout)
+                4 -> DesempenoPedidosScreen(onLogout = onLogout) // Usaremos la nueva pantalla
             }
         }
     }

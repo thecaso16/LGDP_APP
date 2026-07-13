@@ -1,5 +1,6 @@
 package com.lasgalletasdepau.lgdp_app.ui.admin
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
@@ -32,6 +33,7 @@ class GestionInventarioViewModel : ViewModel() {
                 }
                 _insumos.value = lista
             } catch (e: Exception) {
+                Log.e("GestionInventario", "Error al obtener insumos", e)
             } finally {
                 _isLoading.value = false
             }
@@ -42,13 +44,22 @@ class GestionInventarioViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 if (insumo.id.isEmpty()) {
-                    firestore.collection("insumos").add(insumo).await()
+                    // Quitamos el ID vacío para que Firebase genere uno nuevo
+                    val data = hashMapOf(
+                        "nombre" to insumo.nombre,
+                        "cantidadActual" to insumo.cantidadActual,
+                        "cantidadMinima" to insumo.cantidadMinima,
+                        "unidadMedida" to insumo.unidadMedida,
+                        "categoria" to insumo.categoria
+                    )
+                    firestore.collection("insumos").add(data).await()
                 } else {
                     firestore.collection("insumos").document(insumo.id).set(insumo).await()
                 }
                 obtenerInsumos()
                 onResult(true)
             } catch (e: Exception) {
+                Log.e("GestionInventario", "Error al guardar insumo", e)
                 onResult(false)
             }
         }
@@ -61,6 +72,7 @@ class GestionInventarioViewModel : ViewModel() {
                 obtenerInsumos()
                 onResult(true)
             } catch (e: Exception) {
+                Log.e("GestionInventario", "Error al eliminar insumo", e)
                 onResult(false)
             }
         }

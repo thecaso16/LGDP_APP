@@ -11,9 +11,12 @@ data class ProductoEntity(
     val imagen: String?,
     val precio: Double,
     val stock: Int,
+    val controlaStock: Boolean = false,
     val categoriaId: String?,
     val recomendado: Boolean,
+    val estaDisponible: Boolean,
+    val activo: Boolean,
     val sincronizado: Boolean,
-    val ultimaActualizacion: Long?, // Las fechas se guardan como Long (milisegundos) en SQLite
+    val ultimaActualizacion: Long?,
     val operacionPendiente: String?
 )
