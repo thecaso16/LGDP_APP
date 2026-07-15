@@ -21,9 +21,9 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminContainerScreen(onLogout: () -> Unit) {
-    // CONTROL DE NAVEGACIÓN INTERNA DEL ADMIN
-    // 0: Gestión de Personal (GestionUsuariosScreen)
-    // 1: Catálogo de Productos (GestionCatalogoScreen)
+    // CONTROL DE NAVEGACION INTERNA DEL ADMIN
+    // 0: Gestion de Personal (GestionUsuariosScreen)
+    // 1: Catalogo de Productos (GestionCatalogoScreen)
     // 2: Inventario de Insumos (GestionInventarioScreen)
     // 3: Reportes del Negocio (ReportesNegocioScreen)
     // 4: Reportes de Trabajadores (ReportesTrabajadoresScreen)

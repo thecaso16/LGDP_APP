@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,13 +79,13 @@ fun PedidoScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Tomar Pedido 📋", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text("Registrar Pedido", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = {
                         viewModel.limpiarCarrito()
                         onBackToSalon()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
                     }
                 },
                 actions = {
@@ -100,11 +101,12 @@ fun PedidoScreen(
                 ExtendedFloatingActionButton(
                     onClick = { viewModel.guardarPedido(mesaId, clienteNombre) { onBackToSalon() } },
                     containerColor = Color(0xFF10B981),
-                    contentColor = Color.White
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Icon(Icons.Default.ShoppingCart, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Confirmar Orden", fontWeight = FontWeight.Bold)
+                    Text("Confirmar Pedido", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -115,25 +117,32 @@ fun PedidoScreen(
                 .padding(innerPadding)
                 .background(Color(0xFFF8FAFC))
         ) {
-            // TABS
-            TabRow(selectedTabIndex = pestanaActiva, containerColor = Color(0xFF1E233D), contentColor = Color.White) {
-                Tab(selected = pestanaActiva == 0, onClick = { pestanaActiva = 0 }, text = { Text("Menú 📋") })
-                Tab(selected = pestanaActiva == 1, onClick = { pestanaActiva = 1 }, text = { Text("Carrito ($cantidadItemsEnCarrito) 🛒") })
+            TabRow(
+                selectedTabIndex = pestanaActiva, 
+                containerColor = Color(0xFF1E233D), 
+                contentColor = Color.White,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        Modifier.tabIndicatorOffset(tabPositions[pestanaActiva]),
+                        color = Color.White
+                    )
+                }
+            ) {
+                Tab(selected = pestanaActiva == 0, onClick = { pestanaActiva = 0 }, text = { Text("Menú") })
+                Tab(selected = pestanaActiva == 1, onClick = { pestanaActiva = 1 }, text = { Text("Carrito ($cantidadItemsEnCarrito)") })
             }
 
             if (categorias.isEmpty()) {
-                // Estado de carga o vacío
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = Color(0xFF1E233D))
                         Spacer(Modifier.height(16.dp))
-                        Text("Cargando Menú...", color = Color.Gray)
+                        Text("Cargando carta...", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                     }
                 }
             } else {
                 when (pestanaActiva) {
                     0 -> {
-                        // VISTA CATÁLOGO
                         ScrollableTabRow(
                             selectedTabIndex = categorias.indexOfFirst { it.id == categoriaSeleccionadaId }.coerceAtLeast(0),
                             containerColor = Color(0xFF2D3748),
@@ -144,7 +153,7 @@ fun PedidoScreen(
                                 Tab(
                                     selected = categoriaSeleccionadaId == cat.id,
                                     onClick = { categoriaSeleccionadaId = cat.id },
-                                    text = { Text(cat.nombre ?: "", fontSize = 12.sp) }
+                                    text = { Text(cat.nombre ?: "", style = MaterialTheme.typography.labelLarge) }
                                 )
                             }
                         }
@@ -153,8 +162,8 @@ fun PedidoScreen(
                             item {
                                 CabeceraInformacion(
                                     mozo = usuarioLogueado?.nombres ?: "...",
-                                    mesa = mesaId?.toString() ?: "Llevar",
-                                    cliente = clienteNombre ?: "Cliente",
+                                    mesa = mesaId?.toString() ?: "Para llevar",
+                                    cliente = clienteNombre ?: "Cliente general",
                                     fecha = fechaHoraActual
                                 )
                             }
@@ -167,10 +176,10 @@ fun PedidoScreen(
                                 )
                                 HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 0.5.dp)
                             }
+                            item { Spacer(Modifier.height(40.dp)) }
                         }
                     }
                     1 -> {
-                        // VISTA CARRITO
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
@@ -181,44 +190,45 @@ fun PedidoScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = Color.White),
-                                    border = BorderStroke(1.dp, Color.LightGray)
+                                    elevation = CardDefaults.cardElevation(2.dp)
                                 ) {
                                     Column(modifier = Modifier.padding(16.dp)) {
-                                        Text("Resumen de Orden 🍪", fontWeight = FontWeight.Bold)
+                                        Text("Resumen de Orden", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                         Spacer(Modifier.height(16.dp))
                                         
                                         carrito.forEach { (_, det) ->
                                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                Text("${det.cantidad}x ${det.nombreProducto}", modifier = Modifier.weight(1f))
-                                                Text("S/ ${String.format("%.2f", det.cantidad * det.precioUnitario)}", fontWeight = FontWeight.Bold)
+                                                Text("${det.cantidad}x ${det.nombreProducto}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                                                Text("S/ ${String.format("%.2f", det.cantidad * det.precioUnitario)}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
                                             }
                                             Spacer(Modifier.height(8.dp))
                                         }
 
                                         if (carrito.isEmpty()) {
-                                            Text("El carrito está vacío.", color = Color.Gray, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+                                            Text("El carrito está vacío.", color = Color.Gray, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), textAlign = TextAlign.Center)
                                         }
 
-                                        HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                                        HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
                                         
-                                        Text("Notas del Pedido 📝", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                                        Text("Notas del pedido", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.Gray)
+                                        Spacer(Modifier.height(8.dp))
                                         OutlinedTextField(
                                             value = notasGlobales,
                                             onValueChange = { viewModel.actualizarNotasGlobales(it) },
-                                            placeholder = { Text("Ej. Sin azúcar, para las 5pm...") },
+                                            placeholder = { Text("Ej. Sin azúcar, servido a las 5:00 PM...") },
                                             modifier = Modifier.fillMaxWidth().height(100.dp),
                                             shape = RoundedCornerShape(12.dp)
                                         )
 
-                                        Spacer(Modifier.height(16.dp))
-                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("TOTAL:", fontWeight = FontWeight.Black, fontSize = 18.sp)
-                                            Text("S/ ${String.format("%.2f", totalAcumulado)}", fontWeight = FontWeight.Black, fontSize = 22.sp, color = Color(0xFF10B981))
+                                        Spacer(Modifier.height(20.dp))
+                                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                                            Text("TOTAL:", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                                            Text("S/ ${String.format("%.2f", totalAcumulado)}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = Color(0xFF10B981))
                                         }
                                     }
                                 }
                             }
-                            item { Spacer(Modifier.height(80.dp)) }
+                            item { Spacer(Modifier.height(100.dp)) }
                         }
                     }
                 }
@@ -230,17 +240,17 @@ fun PedidoScreen(
 @Composable
 fun CabeceraInformacion(mozo: String, mesa: String, cliente: String, fecha: String) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9))
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Mozo: $mozo", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Text("Mesa: $mesa", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Atendido por: $mozo", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text("Mesa: $mesa", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
             }
-            Text("Cliente: $cliente", fontSize = 13.sp, color = Color.DarkGray)
-            Text("Fecha: $fecha", fontSize = 11.sp, color = Color.Gray)
+            Text("Cliente: $cliente", style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+            Text("Fecha y hora: $fecha", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
         }
     }
 }
@@ -256,26 +266,26 @@ fun FilaProductoCatalogo(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
-            Text(producto.nombre ?: "", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(producto.nombre ?: "", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
             if (!producto.descripcion.isNullOrBlank()) {
                 Text(
                     producto.descripcion,
                     color = Color.Gray,
-                    fontSize = 12.sp,
-                    maxLines = 2
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1
                 )
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "S/ ${String.format("%.2f", producto.precio)}",
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF1E233D),
-                    fontSize = 14.sp
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(Modifier.width(12.dp))
                 Surface(
@@ -285,7 +295,7 @@ fun FilaProductoCatalogo(
                     Text(
                         "Stock: ${producto.stock}",
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        fontSize = 11.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (producto.stock > 0) Color(0xFF475569) else Color.Red
                     )
@@ -296,28 +306,28 @@ fun FilaProductoCatalogo(
             IconButton(
                 onClick = onRestar,
                 enabled = cantidad > 0,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     Icons.Default.Remove,
-                    contentDescription = null,
+                    contentDescription = "Disminuir",
                     tint = if (cantidad > 0) Color.Red else Color.LightGray
                 )
             }
             Text(
                 "$cantidad",
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
-                modifier = Modifier.padding(horizontal = 8.dp),
-                fontSize = 16.sp
+                modifier = Modifier.padding(horizontal = 12.dp)
             )
             IconButton(
                 onClick = onAumentar,
                 enabled = cantidad < producto.stock,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     Icons.Default.Add,
-                    contentDescription = null,
+                    contentDescription = "Aumentar",
                     tint = if (cantidad < producto.stock) Color(0xFF10B981) else Color.LightGray
                 )
             }

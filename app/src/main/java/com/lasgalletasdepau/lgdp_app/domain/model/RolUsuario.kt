@@ -13,11 +13,13 @@ enum class RolUsuario(val valor: String) {
         
         /**
          * Maneja una lista de roles si un usuario tiene múltiples asignaciones.
-         * Ejemplo en Firebase: "Trabajador,Cajero"
+         * Soporta separadores como coma (,) o barra diagonal (/).
          */
         fun fromStringList(valor: String?): List<RolUsuario> {
             if (valor.isNullOrBlank()) return listOf(TRABAJADOR)
-            return valor.split(",").map { fromString(it.trim()) }.distinct()
+            // Dividir por coma o por barra diagonal
+            val items = valor.split(Regex("[,/]"))
+            return items.map { fromString(it.trim()) }.distinct()
         }
     }
 }

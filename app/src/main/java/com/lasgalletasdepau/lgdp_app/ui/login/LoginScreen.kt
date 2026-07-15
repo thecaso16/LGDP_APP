@@ -68,7 +68,14 @@ fun LoginScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 1. IMAGEN DE FONDO
+            // 1. FONDO DE COLOR (FALLLBACK SI LA IMAGEN FALLA)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1E233D))
+            )
+
+            // 2. IMAGEN DE FONDO
             Image(
                 painter = painterResource(id = R.drawable.bg_cafe),
                 contentDescription = "Fondo",
@@ -80,7 +87,7 @@ fun LoginScreen(
                 )
             )
 
-            // 2. TARJETA BLANCA FLOTANTE
+            // 3. TARJETA BLANCA FLOTANTE
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -97,7 +104,7 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "BIENVENIDO 🍪",
+                        text = "BIENVENIDO",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF1A1A1A)

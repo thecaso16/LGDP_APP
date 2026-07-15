@@ -16,10 +16,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainContainerScreen(onLogout: () -> Unit) {
+fun MainContainerScreen(
+    userRole: String?,
+    onLogout: () -> Unit
+) {
     // 0: Salón
     // 1: Pendientes
     // 2: Detalle Mesa (No visible en barra)
@@ -31,6 +35,9 @@ fun MainContainerScreen(onLogout: () -> Unit) {
     var clienteNombreSeleccionado by remember { mutableStateOf<String?>(null) }
     var pedidoSeleccionadoId by remember { mutableStateOf<String?>(null) }
 
+    val roles = RolUsuario.fromStringList(userRole)
+    val esCajero = roles.contains(RolUsuario.CAJERO) || roles.contains(RolUsuario.ADMINISTRADOR)
+
     Scaffold(
         bottomBar = {
             NavigationBar(
@@ -38,7 +45,7 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                 contentColor = Color.White,
                 tonalElevation = 8.dp
             ) {
-                // PESTAÑA 1: SALÓN
+                // PESTAÑA 1: SALON
                 NavigationBarItem(
                     selected = pantallaActual == 0,
                     onClick = { 
@@ -47,8 +54,8 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                         pedidoSeleccionadoId = null
                         pantallaActual = 0 
                     },
-                    icon = { Icon(Icons.Default.TableRestaurant, contentDescription = "Salón") },
-                    label = { Text("Salón", fontWeight = FontWeight.Bold) },
+                    icon = { Icon(Icons.Default.TableRestaurant, contentDescription = "Salon") },
+                    label = { Text("Salon", fontWeight = FontWeight.Bold) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E233D),
                         selectedTextColor = Color.White,
@@ -58,7 +65,7 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                     )
                 )
 
-                // PESTAÑA 2: PENDIENTES (Ahora con icono de bolsa)
+                // PESTAÑA 2: PENDIENTES
                 NavigationBarItem(
                     selected = pantallaActual == 1,
                     onClick = { 
@@ -93,20 +100,22 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                     )
                 )
 
-                // PESTAÑA 4: CAJA
-                NavigationBarItem(
-                    selected = pantallaActual == 3,
-                    onClick = { pantallaActual = 3 },
-                    icon = { Icon(Icons.Default.PointOfSale, contentDescription = "Caja") },
-                    label = { Text("Caja", fontWeight = FontWeight.Bold) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF1E233D),
-                        selectedTextColor = Color.White,
-                        indicatorColor = Color.White,
-                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.6f)
+                // PESTAÑA 4: CAJA (Solo visible para Cajeros o Admin)
+                if (esCajero) {
+                    NavigationBarItem(
+                        selected = pantallaActual == 3,
+                        onClick = { pantallaActual = 3 },
+                        icon = { Icon(Icons.Default.PointOfSale, contentDescription = "Caja") },
+                        label = { Text("Caja", fontWeight = FontWeight.Bold) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Color(0xFF1E233D),
+                            selectedTextColor = Color.White,
+                            indicatorColor = Color.White,
+                            unselectedIconColor = Color.White.copy(alpha = 0.6f),
+                            unselectedTextColor = Color.White.copy(alpha = 0.6f)
+                        )
                     )
-                )
+                }
             }
         }
     ) { innerPadding ->
@@ -120,18 +129,17 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                     onIrAPedido = { id, nombre -> 
                         mesaSeleccionadaId = id
                         clienteNombreSeleccionado = nombre
-                        // Si es mesa libre, vamos directo a elegir productos
                         pedidoSeleccionadoId = null
-                        pantallaActual = 5 // Index 5 para PedidoScreen
+                        pantallaActual = 5 
                     },
                     onIrADetalleMesa = { id ->
                         mesaSeleccionadaId = id
                         pedidoSeleccionadoId = null
                         pantallaActual = 2
                     },
-                    onIrAPedidoParaLlevar = { 
+                    onIrAPedidoParaLlevar = { nombre -> 
                         mesaSeleccionadaId = null
-                        clienteNombreSeleccionado = "Para Llevar"
+                        clienteNombreSeleccionado = nombre
                         pedidoSeleccionadoId = null
                         pantallaActual = 5 
                     },
@@ -158,10 +166,15 @@ fun MainContainerScreen(onLogout: () -> Unit) {
                     onIrAHistorial = { pantallaActual = 4 },
                     onLogout = onLogout
                 )
-                3 -> CuadreCajaScreen(
-                    onRegresar = { pantallaActual = 0 },
-                    onLogout = onLogout
-                )
+                3 -> if (esCajero) {
+                    CuadreCajaScreen(
+                        onRegresar = { pantallaActual = 0 },
+                        onLogout = onLogout
+                    )
+                } else {
+                    // Fallback por si acaso
+                    pantallaActual = 0
+                }
                 4 -> ReportesTrabajadoresScreen(
                     onIrACierreCaja = { pantallaActual = 3 },
                     onLogout = onLogout
@@ -181,5 +194,5 @@ fun MainContainerScreen(onLogout: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun MainContainerScreenPreview() {
-    MainContainerScreen(onLogout = {})
+    MainContainerScreen(userRole = "Administrador", onLogout = {})
 }

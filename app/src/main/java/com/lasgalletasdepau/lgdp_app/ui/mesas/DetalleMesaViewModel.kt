@@ -4,12 +4,15 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
+import com.lasgalletasdepau.lgdp_app.data.local.entity.CajaSesionEntity
 import com.lasgalletasdepau.lgdp_app.data.local.entity.MesaEntity
 import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoDetalleEntity
 import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoEntity
 import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class DetalleMesaViewModel(application: Application) : AndroidViewModel(application) {
@@ -21,6 +24,9 @@ class DetalleMesaViewModel(application: Application) : AndroidViewModel(applicat
 
     private val _detalles = MutableStateFlow<List<PedidoDetalleEntity>>(emptyList())
     val detalles: StateFlow<List<PedidoDetalleEntity>> = _detalles
+
+    val cajaAbierta: StateFlow<CajaSesionEntity?> = appDao.obtenerCajaAbierta()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private var currentMesaId: Int? = null
 

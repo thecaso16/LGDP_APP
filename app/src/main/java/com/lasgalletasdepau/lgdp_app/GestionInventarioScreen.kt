@@ -41,7 +41,6 @@ fun GestionInventarioScreen(
     var textoBusqueda by remember { mutableStateOf("") }
     var mostrarFormularioCrear by remember { mutableStateOf(false) }
 
-    // ESTADOS CREAR
     var nuevoNombre by remember { mutableStateOf("") }
     var nuevaCant by remember { mutableStateOf("") }
     var nuevaMin by remember { mutableStateOf("") }
@@ -54,7 +53,7 @@ fun GestionInventarioScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Inventario de Insumos 📦", fontWeight = FontWeight.ExtraBold, color = Color.White) },
+                title = { Text("Inventario de Insumos", fontWeight = FontWeight.ExtraBold, color = Color.White) },
                 actions = {
                     IconButton(onClick = onLogout) {
                         Icon(
@@ -68,7 +67,11 @@ fun GestionInventarioScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { mostrarFormularioCrear = !mostrarFormularioCrear }, containerColor = Color(0xFF1E233D), contentColor = Color.White) {
+            FloatingActionButton(
+                onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
+                containerColor = Color(0xFF1E233D),
+                contentColor = Color.White
+            ) {
                 Icon(if (mostrarFormularioCrear) Icons.Default.Close else Icons.Default.Add, contentDescription = null)
             }
         }
@@ -84,59 +87,78 @@ fun GestionInventarioScreen(
             )
 
             if (isLoading && insumos.isEmpty()) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF1E233D))
             }
 
             AnimatedVisibility(visible = mostrarFormularioCrear) {
-                Card(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Nuevo Insumo en Firebase", fontWeight = FontWeight.Bold)
-                        OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre Insumo") }, modifier = Modifier.fillMaxWidth())
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(value = nuevaCant, onValueChange = { nuevaCant = it }, label = { Text("Stock Act") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-                            OutlinedTextField(value = nuevaMin, onValueChange = { nuevaMin = it }, label = { Text("Mínimo") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("Nuevo Insumo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre del insumo") }, modifier = Modifier.fillMaxWidth())
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(value = nuevaCant, onValueChange = { nuevaCant = it }, label = { Text("Stock actual") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                            OutlinedTextField(value = nuevaMin, onValueChange = { nuevaMin = it }, label = { Text("Stock mínimo") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
                         }
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            items(listOf("Kg", "Litros", "Unidades")) { u ->
-                                FilterChip(selected = unidad == u, onClick = { unidad = u }, label = { Text(u) })
+                        
+                        Column {
+                            Text("Unidad de medida:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = 4.dp)) {
+                                items(listOf("Kg", "Litros", "Unidades")) { u ->
+                                    FilterChip(selected = unidad == u, onClick = { unidad = u }, label = { Text(u) })
+                                }
                             }
                         }
+
                         Button(
                             onClick = {
                                 val c = nuevaCant.toDoubleOrNull() ?: 0.0
                                 val m = nuevaMin.toDoubleOrNull() ?: 0.0
                                 viewModel.guardarInsumo(Insumo(nombre = nuevoNombre, cantidadActual = c, cantidadMinima = m, unidadMedida = unidad)) {
-                                    if (it) { nuevoNombre = ""; nuevaCant = ""; mostrarFormularioCrear = false }
+                                    if (it) { nuevoNombre = ""; nuevaCant = ""; nuevaMin = ""; mostrarFormularioCrear = false }
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
-                        ) { Text("Guardar en Nube ☁️") }
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("Guardar Insumo") }
                     }
                 }
             }
 
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
+            ) {
                 val filtrados = insumos.filter { it.nombre.contains(textoBusqueda, ignoreCase = true) }
                 items(filtrados) { insumo ->
-                    val color = when {
+                    val colorEstado = when {
                         insumo.cantidadActual <= 0 -> Color.Red
                         insumo.cantidadActual <= insumo.cantidadMinima -> Color(0xFFD97706)
                         else -> Color(0xFF10B981)
                     }
-                    Card(modifier = Modifier.fillMaxWidth().clickable {
-                        insumoSeleccionado = insumo
-                        editCant = insumo.cantidadActual.toString()
-                        editMin = insumo.cantidadMinima.toString()
-                    }, colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            insumoSeleccionado = insumo
+                            editCant = insumo.cantidadActual.toString()
+                            editMin = insumo.cantidadMinima.toString()
+                        },
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(1.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Box(modifier = Modifier.size(12.dp).background(color, CircleShape))
-                            Spacer(Modifier.width(12.dp))
+                            Box(modifier = Modifier.size(10.dp).background(colorEstado, CircleShape))
+                            Spacer(Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(insumo.nombre, fontWeight = FontWeight.Bold)
-                                Text("Mínimo: ${insumo.cantidadMinima} ${insumo.unidadMedida}", fontSize = 11.sp, color = Color.Gray)
+                                Text(insumo.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                Text("Mínimo: ${insumo.cantidadMinima} ${insumo.unidadMedida}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                             }
-                            Text("${insumo.cantidadActual} ${insumo.unidadMedida}", fontWeight = FontWeight.Black, color = color)
+                            Text("${insumo.cantidadActual} ${insumo.unidadMedida}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Black, color = colorEstado)
                         }
                     }
                 }
@@ -149,17 +171,21 @@ fun GestionInventarioScreen(
             onDismissRequest = { insumoSeleccionado = null },
             title = { Text("Gestionar Insumo") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = editCant, onValueChange = { editCant = it }, label = { Text("Cantidad Actual") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-                    OutlinedTextField(value = editMin, onValueChange = { editMin = it }, label = { Text("Stock Mínimo") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(insumoSeleccionado?.nombre ?: "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(value = editCant, onValueChange = { editCant = it }, label = { Text("Cantidad actual") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = editMin, onValueChange = { editMin = it }, label = { Text("Stock mínimo") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    val c = editCant.toDoubleOrNull() ?: 0.0
-                    val m = editMin.toDoubleOrNull() ?: 0.0
-                    viewModel.guardarInsumo(insumoSeleccionado!!.copy(cantidadActual = c, cantidadMinima = m)) { if (it) insumoSeleccionado = null }
-                }) { Text("Guardar") }
+                Button(
+                    onClick = {
+                        val c = editCant.toDoubleOrNull() ?: 0.0
+                        val m = editMin.toDoubleOrNull() ?: 0.0
+                        viewModel.guardarInsumo(insumoSeleccionado!!.copy(cantidadActual = c, cantidadMinima = m)) { if (it) insumoSeleccionado = null }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
+                ) { Text("Guardar Cambios") }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.eliminarInsumo(insumoSeleccionado!!.id) { if (it) insumoSeleccionado = null } }) { Text("Eliminar", color = Color.Red) }

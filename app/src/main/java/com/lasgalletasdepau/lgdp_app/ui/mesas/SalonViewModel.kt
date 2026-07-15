@@ -6,9 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
 import com.lasgalletasdepau.lgdp_app.data.local.dao.AppDao
 import com.lasgalletasdepau.lgdp_app.data.local.entity.MesaEntity
+import com.lasgalletasdepau.lgdp_app.data.local.entity.CajaSesionEntity
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoMesa
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -24,6 +26,9 @@ class SalonViewModel(application: Application) : AndroidViewModel(application) {
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    val cajaAbierta: StateFlow<CajaSesionEntity?> = appDao.obtenerCajaAbierta()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     init {
         // Al iniciar, intentamos bajar el estado actual de las mesas

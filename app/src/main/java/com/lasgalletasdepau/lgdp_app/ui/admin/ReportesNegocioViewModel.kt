@@ -1,10 +1,11 @@
 package com.lasgalletasdepau.lgdp_app.ui.admin
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -32,41 +33,41 @@ class ReportesNegocioViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
     fun cargarReporte(fechaInicioMillis: Long, fechaFinMillis: Long) {
         viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             try {
-                // NORMALIZAR FECHAS:
-                // Inicio: 00:00:00.000
                 val calInicio = Calendar.getInstance().apply {
                     timeInMillis = fechaInicioMillis
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                 }
-
-                // Fin: 23:59:59.999
                 val calFin = Calendar.getInstance().apply {
                     timeInMillis = fechaFinMillis
-                    set(Calendar.HOUR_OF_DAY, 23)
-                    set(Calendar.MINUTE, 59)
-                    set(Calendar.SECOND, 59)
-                    set(Calendar.MILLISECOND, 999)
+                    set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
                 }
+
+                Log.d("ReportesNegocioVM", "Consultando pedidos desde ${calInicio.time} hasta ${calFin.time}")
 
                 val snapshot = firestore.collection("pedidos")
                     .whereEqualTo("estado", "PAGADO")
                     .whereGreaterThanOrEqualTo("fecha", Timestamp(calInicio.time))
                     .whereLessThanOrEqualTo("fecha", Timestamp(calFin.time))
+                    .orderBy("fecha", Query.Direction.DESCENDING)
                     .get().await()
+
+                Log.d("ReportesNegocioVM", "Documentos encontrados: ${snapshot.size()}")
 
                 var ingresos = 0.0
                 var pedidosCont = 0
                 val conteoProductos = mutableMapOf<String, Int>()
 
                 for (doc in snapshot.documents) {
-                    ingresos += doc.getDouble("total") ?: 0.0
+                    val total = doc.getDouble("total") ?: 0.0
+                    ingresos += total
                     pedidosCont++
                         
                     val detalles = doc.get("detalles") as? List<Map<String, Any>>
@@ -86,6 +87,8 @@ class ReportesNegocioViewModel : ViewModel() {
                     .sortedByDescending { it.cantidadVendida }
 
             } catch (e: Exception) {
+                Log.e("ReportesNegocioVM", "Error al cargar reporte: ${e.message}", e)
+                _error.value = "Error al conectar con el servidor. Verifique sus índices en Firestore."
             } finally {
                 _isLoading.value = false
             }

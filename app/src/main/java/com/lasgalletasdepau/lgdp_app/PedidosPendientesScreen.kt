@@ -39,10 +39,10 @@ fun PedidosPendientesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Comandas Pendientes ⏳", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text("Pedidos Pendientes", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onRegresar) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
                     }
                 },
                 actions = {
@@ -57,12 +57,12 @@ fun PedidosPendientesScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = innerPadding.calculateTopPadding()) // Solo aplicamos el padding superior aquí
+                .padding(innerPadding)
                 .background(Color(0xFFF8FAFC))
         ) {
             if (pedidosActivos.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay pedidos activos", color = Color.Gray)
+                    Text("No hay pedidos activos en este momento.", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
                 }
             } else {
                 LazyColumn(
@@ -72,7 +72,7 @@ fun PedidosPendientesScreen(
                 ) {
                     items(
                         items = pedidosActivos,
-                        key = { it.pedido.pedidoId } // Clave estable para mejorar el scroll
+                        key = { it.pedido.pedidoId }
                     ) { item ->
                         val p = item.pedido
                         val hora = if (p.fecha != null) timeFormat.format(Date(p.fecha)) else "--"
@@ -83,7 +83,7 @@ fun PedidosPendientesScreen(
                                 .clickable { onVerDetalle(p.pedidoId) },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(2.dp)
+                            elevation = CardDefaults.cardElevation(1.dp)
                         ) {
                             Row(
                                 modifier = Modifier.padding(16.dp),
@@ -91,21 +91,24 @@ fun PedidosPendientesScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = "Pedido #${p.numeroPedido}", fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
-                                    Text(text = "$hora • Mesa: ${if(p.mesaId != null) "Mesa ${p.mesaId}" else "Para Llevar"}", fontSize = 12.sp, color = Color.Gray)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    // Listar productos
+                                    Text(text = "Orden #${p.numeroPedido}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
+                                    Text(
+                                        text = "$hora | ${if(p.mesaId != null) "Mesa ${p.mesaId}" else "Para llevar"}", 
+                                        style = MaterialTheme.typography.bodySmall, 
+                                        color = Color.Gray
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         text = item.detalles.joinToString { "${it.cantidad}x ${it.nombreProducto}" },
-                                        fontSize = 11.sp,
+                                        style = MaterialTheme.typography.labelSmall,
                                         color = Color(0xFF64748B),
-                                        maxLines = 2
+                                        maxLines = 1
                                     )
                                 }
 
                                 Text(
                                     text = String.format("S/ %.2f", p.total),
-                                    fontSize = 18.sp,
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Black,
                                     color = Color(0xFF1E233D),
                                     modifier = Modifier.padding(horizontal = 12.dp)

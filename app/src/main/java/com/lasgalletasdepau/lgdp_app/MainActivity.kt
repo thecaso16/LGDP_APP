@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
                             )
                         } else {
                             MainContainerScreen(
+                                userRole = userRoleString,
                                 onLogout = {
                                     viewModel.cerrarSesion()
                                     isLoggedIn = false

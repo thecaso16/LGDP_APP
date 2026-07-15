@@ -1,9 +1,11 @@
 package com.lasgalletasdepau.lgdp_app.ui.admin
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -27,9 +29,13 @@ class DesempenoPedidosViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _error = MutableStateFlow<String?>(null)
+    val error: StateFlow<String?> = _error
+
     fun cargarEstadisticas(inicioMillis: Long, finMillis: Long) {
         viewModelScope.launch {
             _isLoading.value = true
+            _error.value = null
             try {
                 val calInicio = Calendar.getInstance().apply {
                     timeInMillis = inicioMillis
@@ -58,17 +64,20 @@ class DesempenoPedidosViewModel : ViewModel() {
                     mapaTrabajadores[uid] = Triple(actual.first, actual.second + total, actual.third + 1)
                 }
 
-                // Obtener nombres de usuarios
                 val listaResult = mutableListOf<TrabajadorEstadistica>()
                 for ((uid, stats) in mapaTrabajadores) {
-                    var nombre = "Usuario $uid"
+                    var nombre = "Usuario: $uid"
                     if (uid != "desconocido") {
                         try {
                             val userDoc = firestore.collection("usuarios").document(uid).get().await()
-                            val nombres = userDoc.getString("nombres") ?: ""
-                            val apellidos = userDoc.getString("apellidos") ?: ""
-                            nombre = "$nombres $apellidos".trim().ifEmpty { nombre }
-                        } catch (e: Exception) {}
+                            if (userDoc.exists()) {
+                                val nombres = userDoc.getString("nombres") ?: ""
+                                val apellidos = userDoc.getString("apellidos") ?: ""
+                                nombre = "$nombres $apellidos".trim().ifEmpty { nombre }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DesempenoPedidosVM", "No se pudo obtener datos del usuario $uid")
+                        }
                     }
                     
                     listaResult.add(TrabajadorEstadistica(
@@ -83,6 +92,8 @@ class DesempenoPedidosViewModel : ViewModel() {
                 _estadisticasTrabajadores.value = listaResult.sortedByDescending { it.totalVendido }
 
             } catch (e: Exception) {
+                Log.e("DesempenoPedidosVM", "Error al cargar estadísticas: ${e.message}", e)
+                _error.value = "Error al obtener datos. Verifique sus permisos e índices."
             } finally {
                 _isLoading.value = false
             }

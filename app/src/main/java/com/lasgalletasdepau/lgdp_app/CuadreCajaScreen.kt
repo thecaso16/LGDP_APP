@@ -96,8 +96,9 @@ fun CuadreCajaScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .background(Color(0xFFF8FAFC))
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(top = 20.dp, bottom = 40.dp)
         ) {
             item {
                 Card(
@@ -106,26 +107,35 @@ fun CuadreCajaScreen(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Estado: ${if(estaAbierta) "CAJA ABIERTA ✅" else "CAJA CERRADA 🔒"}", fontWeight = FontWeight.Bold, color = if(estaAbierta) Color(0xFF10B981) else Color.Red)
+                        Text(
+                            text = "Estado: ${if(estaAbierta) "CAJA ABIERTA" else "CAJA CERRADA"}", 
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold, 
+                            color = if(estaAbierta) Color(0xFF10B981) else Color.Red
+                        )
                         if (estaAbierta) {
-                            Text(text = "Responsable: ${cajaSesion?.nombreCajero}", fontSize = 14.sp, color = Color.Gray)
-                            Text(text = "Desde: ${timeFormat.format(Date(cajaSesion!!.fechaApertura))}", fontSize = 14.sp, color = Color.Gray)
+                            Text(text = "Responsable: ${cajaSesion?.nombreCajero}", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                            Text(text = "Apertura: ${timeFormat.format(Date(cajaSesion!!.fechaApertura))}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                         }
                     }
                 }
             }
 
             if (!estaAbierta) {
-                // Pantalla de APERTURA
                 item {
-                    Text(text = "Apertura de Turno", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(text = "Apertura de Turno", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
+                        colors = CardDefaults.cardColors(containerColor = Color.White), 
+                        shape = RoundedCornerShape(16.dp), 
+                        elevation = CardDefaults.cardElevation(2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             if (esCajero) {
                                 OutlinedTextField(
                                     value = montoAperturaInput,
                                     onValueChange = { viewModel.montoApertura.value = it },
-                                    label = { Text("Monto de Apertura (S/.)") },
+                                    label = { Text("Monto de apertura (S/.)") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp)
@@ -134,32 +144,32 @@ fun CuadreCajaScreen(
                                     onClick = { viewModel.abrirCaja() },
                                     enabled = montoAperturaInput.isNotBlank(),
                                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
-                                ) { Text("Abrir Nueva Caja", fontWeight = FontWeight.Bold) }
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) { Text("Abrir Caja", fontWeight = FontWeight.Bold) }
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
                                     Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Solo un Cajero puede aperturar el turno.", color = Color.Gray)
+                                    Spacer(Modifier.width(12.dp))
+                                    Text("Solo un cajero puede realizar la apertura.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                                 }
                             }
                         }
                     }
                 }
             } else {
-                // Pantalla de CIERRE
                 val esElCajeroResponsable = user?.uid == cajaSesion?.usuarioCajeroId
                 val esAdmin = user?.rol?.contains("Administrador") == true
                 val puedeCerrar = esElCajeroResponsable || esAdmin
 
                 item {
-                    Text(text = "1. Configuración de Caja", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    Text(text = "1. Configuración de Caja", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
                     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             OutlinedTextField(
                                 value = String.format(locale, "S/. %.2f", cajaSesion!!.montoApertura),
                                 onValueChange = {},
-                                label = { Text("Monto de Apertura") },
+                                label = { Text("Monto inicial") },
                                 readOnly = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
@@ -167,7 +177,7 @@ fun CuadreCajaScreen(
                             OutlinedTextField(
                                 value = egresos,
                                 onValueChange = { if(puedeCerrar) viewModel.egresos.value = it },
-                                label = { Text("Egresos / Salidas (S/.)") },
+                                label = { Text("Egresos y gastos (S/.)") },
                                 readOnly = !puedeCerrar,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.fillMaxWidth(),
@@ -178,44 +188,48 @@ fun CuadreCajaScreen(
                 }
 
                 item {
-                    Text(text = "2. Ventas del Turno (Sistema)", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    Text(text = "2. Resumen de Ventas", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
                     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            FilaResumenCaja("Ventas Efectivo", efectivo, locale)
-                            FilaResumenCaja("Ventas Yape/Plin", yape, locale)
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            FilaResumenCaja("Ventas en Efectivo", efectivo, locale)
+                            FilaResumenCaja("Ventas Yape / Plin", yape, locale)
                             FilaResumenCaja("Ventas Izipay", izipay, locale)
                             HorizontalDivider(color = Color(0xFFF1F5F9))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Total Ventas", fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
-                                Text(String.format(locale, "S/. %.2f", totalSistema), fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
+                                Text("Total registrado", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
+                                Text(String.format(locale, "S/. %.2f", totalSistema), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
                             }
                         }
                     }
                 }
 
                 item {
-                    Text(text = "3. Verificación de Efectivo Físico", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    Text(text = "3. Verificación de Efectivo", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
                     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "¿Cuánto efectivo real hay en caja?", fontSize = 14.sp, color = Color(0xFF475569))
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(text = "¿Cuál es el monto físico real en caja?", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF475569))
                             OutlinedTextField(
                                 value = montoRealInput,
                                 onValueChange = { if(puedeCerrar) viewModel.montoRealFisico.value = it },
-                                placeholder = { Text("S/. 0.00") },
+                                placeholder = { Text("0.00") },
                                 readOnly = !puedeCerrar,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
                             )
                             if (diferencia != 0.0 && montoRealInput.isNotBlank()) {
                                 Surface(
                                     color = Color(0xFF3B82F6).copy(alpha = 0.1f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp).clickable(enabled = puedeCerrar) { mostrarDialogoJustificacion = true }
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth().clickable(enabled = puedeCerrar) { mostrarDialogoJustificacion = true }
                                 ) {
                                     Text(
-                                        text = if (justificacionDescuadre.isBlank()) "⚠️ Descuadre detectado (S/. ${String.format(locale, "%.2f", diferencia)}). Toca para justificar." else "📝 Justificación añadida",
-                                        color = Color(0xFF1D4ED8), fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(12.dp)
+                                        text = if (justificacionDescuadre.isBlank()) "Diferencia detectada (S/. ${String.format(locale, "%.2f", diferencia)}). Toca para justificar." else "Justificación registrada correctamente.",
+                                        color = Color(0xFF1D4ED8), 
+                                        style = MaterialTheme.typography.bodySmall, 
+                                        fontWeight = FontWeight.Bold, 
+                                        textAlign = TextAlign.Center, 
+                                        modifier = Modifier.padding(16.dp)
                                     )
                                 }
                             }
@@ -225,40 +239,43 @@ fun CuadreCajaScreen(
 
                 if (puedeCerrar) {
                     item {
-                        Button(
-                            onClick = {
-                                val csv = "Concepto;Monto\nApertura;${cajaSesion?.montoApertura}\nEgresos;${egresos}\nEfectivo;${efectivo}\nYape;${yape}\nIzipay;${izipay}\nEsperado;${esperadoFisico}\nReal;${montoRealDouble}\nDiferencia;${diferencia}"
-                                val file = File(context.cacheDir, "Cierre_${dateFormat.format(Date()).replace("/", "-")}.csv")
-                                try {
-                                    FileOutputStream(file).use { it.write(csv.toByteArray()) }
-                                    val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                                    context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/csv"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }, "Exportar Cierre"))
-                                } catch (e: Exception) {}
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
-                        ) { Text("Exportar Reporte a Excel 📊") }
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Button(
+                                onClick = {
+                                    val csv = "Concepto;Monto\nApertura;${cajaSesion?.montoApertura}\nEgresos;${egresos}\nEfectivo;${efectivo}\nYape;${yape}\nIzipay;${izipay}\nEsperado;${esperadoFisico}\nReal;${montoRealDouble}\nDiferencia;${diferencia}"
+                                    val file = File(context.cacheDir, "Cierre_${dateFormat.format(Date()).replace("/", "-")}.csv")
+                                    try {
+                                        FileOutputStream(file).use { it.write(csv.toByteArray()) }
+                                        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+                                        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/csv"
+                                            putExtra(Intent.EXTRA_STREAM, uri)
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }, "Exportar Reporte de Cierre"))
+                                    } catch (e: Exception) {}
+                                },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { Text("Exportar Reporte Excel", fontWeight = FontWeight.Bold) }
 
-                        Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    val exito = viewModel.finalizarCierre(justificacionDescuadre)
-                                    if (exito) {
-                                        onRegresar()
-                                    } else {
-                                        snackbarHostState.showSnackbar("Error al cerrar caja. Verifica tus permisos de Firebase.")
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        val exito = viewModel.finalizarCierre(justificacionDescuadre)
+                                        if (exito) {
+                                            onRegresar()
+                                        } else {
+                                            snackbarHostState.showSnackbar("Error al procesar el cierre. Verifique su conexión.")
+                                        }
                                     }
-                                }
-                            },
-                            enabled = montoRealInput.isNotBlank() && (abs(diferencia) < 0.01 || justificacionDescuadre.isNotBlank()),
-                            modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 8.dp),
-                            shape = RoundedCornerShape(26.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
-                        ) { Text("Cerrar Turno y Subir ☁️", fontWeight = FontWeight.Bold) }
+                                },
+                                enabled = montoRealInput.isNotBlank() && (abs(diferencia) < 0.01 || justificacionDescuadre.isNotBlank()),
+                                modifier = Modifier.fillMaxWidth().height(52.dp),
+                                shape = RoundedCornerShape(26.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
+                            ) { Text("Finalizar Turno", fontWeight = FontWeight.Bold) }
+                        }
                     }
                 }
             }
@@ -273,12 +290,18 @@ fun CuadreCajaScreen(
                 OutlinedTextField(
                     value = justificacionDescuadre,
                     onValueChange = { justificacionDescuadre = it },
-                    placeholder = { Text("Ej. Error en cobro mesa 5...") },
+                    placeholder = { Text("Ej. Error en cobro mesa 5, billete falso detectado...") },
                     modifier = Modifier.fillMaxWidth(),
-                    minLines = 3
+                    minLines = 3,
+                    shape = RoundedCornerShape(12.dp)
                 )
             },
-            confirmButton = { Button(onClick = { mostrarDialogoJustificacion = false }) { Text("Guardar") } }
+            confirmButton = { 
+                Button(
+                    onClick = { mostrarDialogoJustificacion = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
+                ) { Text("Guardar Justificación") } 
+            }
         )
     }
 }
@@ -286,7 +309,7 @@ fun CuadreCajaScreen(
 @Composable
 fun FilaResumenCaja(concepto: String, monto: Double, locale: Locale) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = concepto, color = Color(0xFF64748B), fontSize = 14.sp)
-        Text(text = String.format(locale, "S/. %.2f", monto), fontWeight = FontWeight.SemiBold, color = Color(0xFF1E233D))
+        Text(text = concepto, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF64748B))
+        Text(text = String.format(locale, "S/. %.2f", monto), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E233D))
     }
 }

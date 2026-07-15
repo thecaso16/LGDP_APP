@@ -173,7 +173,7 @@ class SyncManager(
     private suspend fun bajarPedidosActivosDeFirebase() {
         try {
             val snapshot = firestore.collection("pedidos")
-                .whereIn("estado", listOf("PENDIENTE", "PREPARANDO", "LISTO"))
+                .whereIn("estado", listOf("PENDIENTE", "PREPARADO"))
                 .get().await()
 
             for (doc in snapshot.documents) {
