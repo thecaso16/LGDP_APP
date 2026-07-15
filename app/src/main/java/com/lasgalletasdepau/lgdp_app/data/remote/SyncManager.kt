@@ -39,16 +39,34 @@ class SyncManager(
             subirActualizacionesDeStock()
             subirEstadoMesas()
 
+            // Estas descargas son pesadas, se podrían hacer con menos frecuencia
             bajarMesasDeFirebase()
             bajarCategoriasDeFirebase()
             bajarProductosDeFirebase()
             bajarInsumosDeFirebase()
             bajarRelacionesInsumosDeFirebase()
+            
+            // Estas son más críticas para la operación
             bajarCajaAbiertaDeFirebase()
             bajarPedidosActivosDeFirebase()
             Log.d("SyncManager", "Sincronización completada con éxito.")
         } catch (e: Exception) {
             Log.e("SyncManager", "Error en sincronización: ${e.message}")
+        }
+    }
+
+    /**
+     * Sincronización rápida para los elementos críticos de la operación diaria.
+     */
+    suspend fun sincronizarPedidosYEstado() {
+        try {
+            subirPedidosPendientes()
+            subirEstadoMesas()
+            bajarCajaAbiertaDeFirebase()
+            bajarPedidosActivosDeFirebase()
+            bajarMesasDeFirebase()
+        } catch (e: Exception) {
+            Log.e("SyncManager", "Error en sincronización rápida: ${e.message}")
         }
     }
 
@@ -188,8 +206,8 @@ class SyncManager(
                         pedidoId = pedidoId,
                         numeroPedido = doc.getLong("numeroPedido")?.toInt() ?: 0,
                         fecha = firebaseFecha,
-                        estado = EstadoPedido.valueOf(doc.getString("estado") ?: "PENDIENTE"),
-                        tipoPedido = TipoPedido.valueOf(doc.getString("tipoPedido") ?: "EN_MESA"),
+                        estado = doc.getString("estado")?.let { try { EstadoPedido.valueOf(it) } catch(e: Exception) { null } },
+                        tipoPedido = doc.getString("tipoPedido")?.let { try { TipoPedido.valueOf(it) } catch(e: Exception) { TipoPedido.PARA_LLEVAR } } ?: TipoPedido.PARA_LLEVAR,
                         mesaId = doc.getLong("mesaId")?.toInt(),
                         metodoPago = doc.getString("metodoPago")?.let {
                             try { MetodoPago.valueOf(it) } catch(e: Exception) { null }
@@ -234,7 +252,6 @@ class SyncManager(
 
             if (!snapshot.isEmpty) {
                 val doc = snapshot.documents[0]
-                // CORRECCIÓN: Usar nombres de argumentos para evitar errores posicionales
                 val sesion = CajaSesionEntity(
                     cajaId = doc.id,
                     usuarioCajeroId = doc.getString("usuarioCajeroId") ?: doc.getString("usuarioId") ?: "",
@@ -259,7 +276,9 @@ class SyncManager(
             val startTimestamp = Timestamp(Date(inicio))
             val endTimestamp = Timestamp(Date(fin))
 
+            // Optimizamos la consulta a Firebase filtrando por usuario para evitar traer datos ajenos
             val snapshot = firestore.collection("pedidos")
+                .whereEqualTo("usuarioId", usuarioId)
                 .whereGreaterThanOrEqualTo("fecha", startTimestamp)
                 .whereLessThanOrEqualTo("fecha", endTimestamp)
                 .get().await()

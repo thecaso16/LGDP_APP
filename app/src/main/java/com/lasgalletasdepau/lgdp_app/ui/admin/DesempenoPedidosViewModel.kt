@@ -5,7 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
+import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
+import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoConDetalles
+import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoDetalleEntity
+import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoEntity
+import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
+import com.lasgalletasdepau.lgdp_app.domain.model.TipoPedido
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -25,6 +30,9 @@ class DesempenoPedidosViewModel : ViewModel() {
 
     private val _estadisticasTrabajadores = MutableStateFlow<List<TrabajadorEstadistica>>(emptyList())
     val estadisticasTrabajadores: StateFlow<List<TrabajadorEstadistica>> = _estadisticasTrabajadores
+
+    private val _pedidosTrabajadorSeleccionado = MutableStateFlow<List<PedidoConDetalles>>(emptyList())
+    val pedidosTrabajadorSeleccionado: StateFlow<List<PedidoConDetalles>> = _pedidosTrabajadorSeleccionado
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -47,7 +55,6 @@ class DesempenoPedidosViewModel : ViewModel() {
                 }
 
                 val snapshot = firestore.collection("pedidos")
-                    .whereEqualTo("estado", "PAGADO")
                     .whereGreaterThanOrEqualTo("fecha", Timestamp(calInicio.time))
                     .whereLessThanOrEqualTo("fecha", Timestamp(calFin.time))
                     .get().await()
@@ -56,7 +63,11 @@ class DesempenoPedidosViewModel : ViewModel() {
                 var totalGlobal = 0.0
 
                 for (doc in snapshot.documents) {
-                    val uid = doc.getString("usuarioId") ?: "desconocido"
+                    if (doc.getString("estado") != "PAGADO") continue
+
+                    val uid = doc.getString("usuarioId")
+                    if (uid == null) continue
+                    
                     val total = doc.getDouble("total") ?: 0.0
                     totalGlobal += total
                         
@@ -66,37 +77,97 @@ class DesempenoPedidosViewModel : ViewModel() {
 
                 val listaResult = mutableListOf<TrabajadorEstadistica>()
                 for ((uid, stats) in mapaTrabajadores) {
-                    var nombre = "Usuario: $uid"
-                    if (uid != "desconocido") {
-                        try {
-                            val userDoc = firestore.collection("usuarios").document(uid).get().await()
-                            if (userDoc.exists()) {
-                                val nombres = userDoc.getString("nombres") ?: ""
-                                val apellidos = userDoc.getString("apellidos") ?: ""
-                                nombre = "$nombres $apellidos".trim().ifEmpty { nombre }
-                            }
-                        } catch (e: Exception) {
-                            Log.e("DesempenoPedidosVM", "No se pudo obtener datos del usuario $uid")
+                    var nombre = "ID: ${uid.takeLast(6)}"
+                    try {
+                        val userDoc = firestore.collection("usuarios").document(uid).get().await()
+                        if (userDoc.exists()) {
+                            val nombres = userDoc.getString("nombres") ?: ""
+                            val apellidos = userDoc.getString("apellidos") ?: ""
+                            nombre = "$nombres $apellidos".trim().ifEmpty { nombre }
                         }
+                    } catch (e: Exception) {
+                        Log.e("DesempenoPedidosVM", "Error al cargar usuario $uid")
                     }
                     
                     listaResult.add(TrabajadorEstadistica(
-                        usuarioId = uid,
-                        nombre = nombre,
-                        totalVendido = stats.second,
-                        cantidadPedidos = stats.third,
-                        porcentajeVentas = if (totalGlobal > 0) (stats.second / totalGlobal).toFloat() else 0f
+                        uid, nombre, stats.second, stats.third,
+                        if (totalGlobal > 0) (stats.second / totalGlobal).toFloat() else 0f
                     ))
                 }
 
                 _estadisticasTrabajadores.value = listaResult.sortedByDescending { it.totalVendido }
 
             } catch (e: Exception) {
-                Log.e("DesempenoPedidosVM", "Error al cargar estadísticas: ${e.message}", e)
-                _error.value = "Error al obtener datos. Verifique sus permisos e índices."
+                Log.e("DesempenoPedidosVM", "Error: ${e.message}")
+                _error.value = "Error al obtener datos del servidor."
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    fun cargarPedidosTrabajador(usuarioId: String, inicioMillis: Long, finMillis: Long) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val calInicio = Calendar.getInstance().apply {
+                    timeInMillis = inicioMillis
+                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                }
+                val calFin = Calendar.getInstance().apply {
+                    timeInMillis = finMillis
+                    set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
+                }
+
+                val snapshot = firestore.collection("pedidos")
+                    .whereEqualTo("usuarioId", usuarioId)
+                    .whereGreaterThanOrEqualTo("fecha", Timestamp(calInicio.time))
+                    .whereLessThanOrEqualTo("fecha", Timestamp(calFin.time))
+                    .get().await()
+
+                val lista = snapshot.documents.mapNotNull { doc ->
+                    val firebaseFecha = doc.getTimestamp("fecha")?.toDate()?.time ?: 0L
+                    val pedido = PedidoEntity(
+                        pedidoId = doc.id,
+                        numeroPedido = doc.getLong("numeroPedido")?.toInt() ?: 0,
+                        fecha = firebaseFecha,
+                        estado = doc.getString("estado")?.let { try { EstadoPedido.valueOf(it) } catch(e: Exception) { null } },
+                        tipoPedido = doc.getString("tipoPedido")?.let { try { TipoPedido.valueOf(it) } catch(e: Exception) { TipoPedido.PARA_LLEVAR } } ?: TipoPedido.PARA_LLEVAR,
+                        mesaId = doc.getLong("mesaId")?.toInt(),
+                        metodoPago = doc.getString("metodoPago")?.let { try { MetodoPago.valueOf(it) } catch(e: Exception) { null } },
+                        nombreCliente = doc.getString("nombreCliente"),
+                        total = doc.getDouble("total") ?: 0.0,
+                        usuarioId = doc.getString("usuarioId"),
+                        notas = doc.getString("notas"),
+                        cajaId = doc.getString("cajaId"),
+                        sincronizado = true
+                    )
+                    
+                    val detallesNube = doc.get("detalles") as? List<Map<String, Any>>
+                    val detallesEntities = detallesNube?.map { map ->
+                        PedidoDetalleEntity(
+                            pedidoId = doc.id,
+                            productoId = map["productoId"] as? String,
+                            nombreProducto = map["nombreProducto"] as? String,
+                            cantidad = (map["cantidad"] as? Long)?.toInt() ?: 0,
+                            precioUnitario = (map["precioUnitario"] as? Number)?.toDouble() ?: 0.0,
+                            comentario = null
+                        )
+                    } ?: emptyList()
+                    
+                    PedidoConDetalles(pedido, detallesEntities)
+                }.sortedByDescending { it.pedido.fecha }
+                
+                _pedidosTrabajadorSeleccionado.value = lista
+            } catch (e: Exception) {
+                Log.e("DesempenoVM", "Error al cargar pedidos trabajador: ${e.message}")
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+    
+    fun limpiarPedidosTrabajador() {
+        _pedidosTrabajadorSeleccionado.value = emptyList()
     }
 }

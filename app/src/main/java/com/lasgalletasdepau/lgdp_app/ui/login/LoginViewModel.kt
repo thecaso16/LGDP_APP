@@ -49,13 +49,18 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val currentUser = auth.currentUser
             if (currentUser != null) {
-                val localUser = appDao.obtenerUsuarioLogueado()
+                // Verificamos si el usuario en Room coincide con el de Firebase
+                val localUser = appDao.obtenerUsuarioPorId(currentUser.uid)
                 if (localUser != null) {
+                    // Nos aseguramos de que no haya otros usuarios residuales
+                    appDao.suplantarUsuario(localUser)
                     _loginState.value = LoginState.Success(localUser.rol ?: "Trabajador")
                 } else {
-                    // Si hay sesión en Firebase pero no local, recuperamos datos
+                    // Si no está en Room pero sí en Firebase, lo recuperamos
                     recuperarDatosUsuario(currentUser.uid)
                 }
+            } else {
+                _loginState.value = LoginState.Idle
             }
         }
     }
@@ -70,18 +75,18 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 val email = document.getString("email")
                 val dni = document.getString("dni")
 
-                // Guardar localmente
-                appDao.insertarUsuario(
-                    UsuarioEntity(
-                        uid = uid,
-                        email = email,
-                        nombres = nombres,
-                        apellidos = apellidos,
-                        dni = dni,
-                        rol = rol,
-                        activo = true
-                    )
+                val newUser = UsuarioEntity(
+                    uid = uid,
+                    email = email,
+                    nombres = nombres,
+                    apellidos = apellidos,
+                    dni = dni,
+                    rol = rol,
+                    activo = true
                 )
+                
+                // Limpiar y guardar el nuevo usuario
+                appDao.suplantarUsuario(newUser)
                 _loginState.value = LoginState.Success(rol)
             }
         } catch (e: Exception) {
@@ -109,18 +114,18 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     if (document.exists()) {
                         val rolObtenido = document.getString("rol") ?: "Trabajador"
                         
-                        // 3. Persistencia Local en Room
-                        appDao.insertarUsuario(
-                            UsuarioEntity(
-                                uid = uid,
-                                email = correo,
-                                nombres = document.getString("nombres"),
-                                apellidos = document.getString("apellidos"),
-                                dni = document.getString("dni"),
-                                rol = rolObtenido,
-                                activo = true
-                            )
+                        val userToSave = UsuarioEntity(
+                            uid = uid,
+                            email = correo,
+                            nombres = document.getString("nombres"),
+                            apellidos = document.getString("apellidos"),
+                            dni = document.getString("dni"),
+                            rol = rolObtenido,
+                            activo = true
                         )
+
+                        // 3. Persistencia Local en Room (Limpiando previos)
+                        appDao.suplantarUsuario(userToSave)
 
                         _loginState.value = LoginState.Success(rolObtenido)
                     } else {

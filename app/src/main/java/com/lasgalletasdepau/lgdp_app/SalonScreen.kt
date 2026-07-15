@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.LocalMall
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.TableBar
@@ -48,56 +47,24 @@ fun SalonScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Salón de Mesas", fontWeight = FontWeight.Bold, color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D)),
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Cerrar Sesión",
-                            tint = Color.White
-                        )
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    if (cajaAbierta == null) {
-                        scope.launch { snackbarHostState.showSnackbar("Debe abrir caja antes de registrar pedidos.") }
-                    } else {
-                        nombreClienteInput = ""
-                        mostrarDialogoLlevar = true
-                    }
-                },
-                containerColor = Color(0xFF10B981),
-                contentColor = Color.White,
-                elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(imageVector = Icons.Default.LocalMall, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Para llevar", fontWeight = FontWeight.Bold)
-            }
-        }
-    ) { innerPadding ->
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
                 .padding(horizontal = 16.dp)
         ) {
+            Text(
+                text = "Salón de Mesas",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF1E233D),
+                modifier = Modifier.padding(top = 20.dp, bottom = 4.dp)
+            )
             Text(
                 text = "Seleccione una mesa para iniciar el pedido:",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF64748B),
-                modifier = Modifier.padding(vertical = 16.dp)
+                modifier = Modifier.padding(bottom = 16.dp)
             )
 
             if (cajaAbierta == null) {
@@ -143,9 +110,33 @@ fun SalonScreen(
                 }
             }
         }
+
+        // FAB: Para llevar
+        ExtendedFloatingActionButton(
+            onClick = {
+                if (cajaAbierta == null) {
+                    scope.launch { snackbarHostState.showSnackbar("Debe abrir caja antes de registrar pedidos.") }
+                } else {
+                    nombreClienteInput = ""
+                    mostrarDialogoLlevar = true
+                }
+            },
+            containerColor = Color(0xFF10B981),
+            contentColor = Color.White,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(imageVector = Icons.Default.LocalMall, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Para llevar", fontWeight = FontWeight.Bold)
+        }
+
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
-    // Diálogo para abrir mesa
+    // Diálogos ...
     if (mostrarDialogoApertura && mesaSeleccionadaParaAbrir != null) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoApertura = false },
@@ -164,7 +155,7 @@ fun SalonScreen(
             text = {
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Ingrese el nombre del cliente para identificar la atención:",
+                        text = "Ingrese el nombre del cliente:",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF475569)
                     )
@@ -202,7 +193,6 @@ fun SalonScreen(
         )
     }
 
-    // Diálogo para pedido para llevar
     if (mostrarDialogoLlevar) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoLlevar = false },
@@ -300,7 +290,7 @@ fun ItemMesa(mesa: MesaEntity, onClickMesa: () -> Unit) {
                         color = Color.White,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
             }

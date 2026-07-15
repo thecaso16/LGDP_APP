@@ -11,10 +11,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,21 +49,6 @@ fun GestionInventarioScreen(
     var editMin by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Inventario de Insumos", fontWeight = FontWeight.ExtraBold, color = Color.White) },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Cerrar Sesión",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
@@ -77,63 +60,82 @@ fun GestionInventarioScreen(
         }
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding).background(Color(0xFFF8FAFC))) {
-            OutlinedTextField(
-                value = textoBusqueda,
-                onValueChange = { textoBusqueda = it },
-                placeholder = { Text("Buscar insumo...") },
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                shape = RoundedCornerShape(12.dp)
-            )
-
             if (isLoading && insumos.isEmpty()) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF1E233D))
             }
 
-            AnimatedVisibility(visible = mostrarFormularioCrear) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Nuevo Insumo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre del insumo") }, modifier = Modifier.fillMaxWidth())
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedTextField(value = nuevaCant, onValueChange = { nuevaCant = it }, label = { Text("Stock actual") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-                            OutlinedTextField(value = nuevaMin, onValueChange = { nuevaMin = it }, label = { Text("Stock mínimo") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-                        }
-                        
-                        Column {
-                            Text("Unidad de medida:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = 4.dp)) {
-                                items(listOf("Kg", "Litros", "Unidades")) { u ->
-                                    FilterChip(selected = unidad == u, onClick = { unidad = u }, label = { Text(u) })
-                                }
-                            }
-                        }
-
-                        Button(
-                            onClick = {
-                                val c = nuevaCant.toDoubleOrNull() ?: 0.0
-                                val m = nuevaMin.toDoubleOrNull() ?: 0.0
-                                viewModel.guardarInsumo(Insumo(nombre = nuevoNombre, cantidadActual = c, cantidadMinima = m, unidadMedida = unidad)) {
-                                    if (it) { nuevoNombre = ""; nuevaCant = ""; nuevaMin = ""; mostrarFormularioCrear = false }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) { Text("Guardar Insumo") }
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp)) {
+                        Text(
+                            text = "Inventario de Insumos",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF1E233D)
+                        )
+                        Text(
+                            text = "Controle las existencias de materia prima:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B)
+                        )
                     }
                 }
-            }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
-            ) {
+                item {
+                    OutlinedTextField(
+                        value = textoBusqueda,
+                        onValueChange = { textoBusqueda = it },
+                        placeholder = { Text("Buscar insumo...") },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+
+                item {
+                    AnimatedVisibility(visible = mostrarFormularioCrear) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Nuevo Insumo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre del insumo") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    OutlinedTextField(value = nuevaCant, onValueChange = { nuevaCant = it }, label = { Text("Stock actual") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = RoundedCornerShape(12.dp))
+                                    OutlinedTextField(value = nuevaMin, onValueChange = { nuevaMin = it }, label = { Text("Stock mínimo") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = RoundedCornerShape(12.dp))
+                                }
+                                
+                                Column {
+                                    Text("Unidad de medida:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = 4.dp)) {
+                                        items(listOf("Kg", "Litros", "Unidades")) { u ->
+                                            FilterChip(selected = unidad == u, onClick = { unidad = u }, label = { Text(u) })
+                                        }
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val c = nuevaCant.toDoubleOrNull() ?: 0.0
+                                        val m = nuevaMin.toDoubleOrNull() ?: 0.0
+                                        viewModel.guardarInsumo(Insumo(nombre = nuevoNombre, cantidadActual = c, cantidadMinima = m, unidadMedida = unidad)) {
+                                            if (it) { nuevoNombre = ""; nuevaCant = ""; nuevaMin = ""; mostrarFormularioCrear = false }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) { Text("Guardar Insumo") }
+                            }
+                        }
+                    }
+                }
+
                 val filtrados = insumos.filter { it.nombre.contains(textoBusqueda, ignoreCase = true) }
                 items(filtrados) { insumo ->
                     val colorEstado = when {
@@ -142,7 +144,7 @@ fun GestionInventarioScreen(
                         else -> Color(0xFF10B981)
                     }
                     Card(
-                        modifier = Modifier.fillMaxWidth().clickable {
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable {
                             insumoSeleccionado = insumo
                             editCant = insumo.cantidadActual.toString()
                             editMin = insumo.cantidadMinima.toString()
@@ -169,12 +171,13 @@ fun GestionInventarioScreen(
     if (insumoSeleccionado != null) {
         AlertDialog(
             onDismissRequest = { insumoSeleccionado = null },
-            title = { Text("Gestionar Insumo") },
+            shape = RoundedCornerShape(28.dp),
+            title = { Text("Gestionar Insumo", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(insumoSeleccionado?.nombre ?: "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    OutlinedTextField(value = editCant, onValueChange = { editCant = it }, label = { Text("Cantidad actual") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = editMin, onValueChange = { editMin = it }, label = { Text("Stock mínimo") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = editCant, onValueChange = { editCant = it }, label = { Text("Cantidad actual") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = editMin, onValueChange = { editMin = it }, label = { Text("Stock mínimo") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                 }
             },
             confirmButton = {

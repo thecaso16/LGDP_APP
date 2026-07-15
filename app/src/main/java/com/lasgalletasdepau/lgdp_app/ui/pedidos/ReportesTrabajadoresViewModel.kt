@@ -8,8 +8,7 @@ import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoDetalleEntity
 import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoEntity
 import com.lasgalletasdepau.lgdp_app.data.local.entity.UsuarioEntity
 import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -23,24 +22,15 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
     private val appDao = AppDatabase.getDatabase(application).appDao()
     private val syncManager = com.lasgalletasdepau.lgdp_app.data.remote.SyncManager.getInstance(application)
 
-    private val _usuarioLogueado = MutableStateFlow<UsuarioEntity?>(null)
-    val usuarioLogueado: StateFlow<UsuarioEntity?> = _usuarioLogueado
+    // Observar al usuario de forma reactiva
+    val usuarioLogueado: StateFlow<UsuarioEntity?> = appDao.obtenerUsuarioLogueado()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _historial = MutableStateFlow<List<PedidoConDetalles>>(emptyList())
     val historial: StateFlow<List<PedidoConDetalles>> = _historial
 
-    init {
-        cargarUsuario()
-    }
-
-    private fun cargarUsuario() {
-        viewModelScope.launch {
-            _usuarioLogueado.value = appDao.obtenerUsuarioLogueado()
-        }
-    }
-
     fun esCajeroOAdmin(): Boolean {
-        val user = _usuarioLogueado.value ?: return false
+        val user = usuarioLogueado.value ?: return false
         val roles = RolUsuario.fromStringList(user.rol)
         return roles.contains(RolUsuario.CAJERO) || roles.contains(RolUsuario.ADMINISTRADOR)
     }
@@ -49,12 +39,12 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
      * Verifica si el usuario actual es el cajero que abrió la caja actual.
      */
     fun esCajeroResponsable(cajeroIdEnCaja: String?): Boolean {
-        val user = _usuarioLogueado.value ?: return false
+        val user = usuarioLogueado.value ?: return false
         return user.uid == cajeroIdEnCaja
     }
 
     fun buscarPorRango(fechaInicioStr: String, fechaFinStr: String) {
-        val user = _usuarioLogueado.value ?: return
+        val user = usuarioLogueado.value ?: return
         viewModelScope.launch {
             try {
                 val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -77,23 +67,33 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
                     set(Calendar.MILLISECOND, 999)
                 }
 
-                val verTodo = if (esCajeroOAdmin()) 1 else 0
+                // 1. Mostrar datos locales inmediatamente con el UID correcto
+                actualizarHistorialLocal(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
 
-                // 1. Descargar historial de Firebase (Traer pedidos de todos durante el turno si es cajero)
+                // 2. Descargar historial de Firebase filtrado por este usuario
                 syncManager.bajarHistorialRango(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
 
-                // 2. Obtener de local
-                val pedidos = appDao.obtenerPedidosHistorial(user.uid, calInicio.timeInMillis, calFin.timeInMillis, verTodo)
-                
-                val resultado = pedidos.map { pedido ->
-                    val detalles = appDao.obtenerDetallesPorPedido(pedido.pedidoId)
-                    PedidoConDetalles(pedido, detalles)
-                }
-                _historial.value = resultado
+                // 3. Refrescar datos locales
+                actualizarHistorialLocal(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
             } catch (e: Exception) {
-                _historial.value = emptyList()
+                // Mantener estado actual en caso de error
             }
         }
+    }
+
+    private suspend fun actualizarHistorialLocal(uid: String, inicio: Long, fin: Long) {
+        // Los trabajadores solo ven sus propios pedidos (verTodo = 0)
+        // Los administradores podrían ver todo (verTodo = 1) si se desea, 
+        // pero para evitar la mezcla reportada, mantendremos el filtro estricto por ahora.
+        val roles = RolUsuario.fromStringList(usuarioLogueado.value?.rol)
+        val verTodo = if (roles.contains(RolUsuario.ADMINISTRADOR)) 1 else 0
+        
+        val pedidos = appDao.obtenerPedidosHistorial(uid, inicio, fin, verTodo)
+        val resultado = pedidos.map { pedido ->
+            val detalles = appDao.obtenerDetallesPorPedido(pedido.pedidoId)
+            PedidoConDetalles(pedido, detalles)
+        }
+        _historial.value = resultado
     }
 
     fun generarCsvData(): String {

@@ -63,21 +63,6 @@ fun GestionUsuariosScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Gestión de Personal", fontWeight = FontWeight.ExtraBold, color = Color.White) },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Cerrar Sesión",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
@@ -96,6 +81,22 @@ fun GestionUsuariosScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
             ) {
+                item {
+                    Text(
+                        text = "Gestión de Personal",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color(0xFF1E233D)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Administre los accesos y perfiles del equipo:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFF64748B)
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
+
                 item {
                     AnimatedVisibility(visible = mostrarFormularioCrear) {
                         Card(

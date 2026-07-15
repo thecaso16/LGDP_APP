@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
@@ -71,21 +70,6 @@ fun GestionCatalogoScreen(
     var nombreNuevaCat by remember { mutableStateOf("") }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Gestión de Catálogo", fontWeight = FontWeight.ExtraBold, color = Color.White) },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Logout,
-                            contentDescription = "Cerrar Sesión",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
@@ -101,127 +85,147 @@ fun GestionCatalogoScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF1E233D))
             }
 
-            LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 item {
-                    FilterChip(
-                        selected = filtroCategoriaId == "Todos", 
-                        onClick = { filtroCategoriaId = "Todos" }, 
-                        label = { Text("Todos") }
-                    )
-                }
-                items(categorias) { cat ->
-                    FilterChip(
-                        selected = filtroCategoriaId == cat.id, 
-                        onClick = { filtroCategoriaId = cat.id }, 
-                        label = { Text(cat.nombre) }
-                    )
-                }
-                item {
-                    IconButton(
-                        onClick = { mostrarDialogoCat = true },
-                        modifier = Modifier.size(32.dp).background(Color(0xFF1E233D).copy(alpha = 0.1f), RoundedCornerShape(8.dp))
-                    ) { 
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp)) 
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp)) {
+                        Text(
+                            text = "Gestión de Catálogo",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF1E233D)
+                        )
+                        Text(
+                            text = "Organice su carta de productos y categorías:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B)
+                        )
                     }
                 }
-            }
 
-            AnimatedVisibility(visible = mostrarFormularioCrear) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Nuevo Producto", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        
-                        OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre del producto") }, modifier = Modifier.fillMaxWidth())
-                        OutlinedTextField(value = nuevoDescripcion, onValueChange = { nuevoDescripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                        OutlinedTextField(value = nuevoPrecio, onValueChange = { nuevoPrecio = it }, label = { Text("Precio (S/.)") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal))
-                        
-                        Column {
-                            Text("Categoría:", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(top = 4.dp)) {
-                                items(categorias) { cat ->
-                                    FilterChip(
-                                        selected = nuevaCatId == cat.id, 
-                                        onClick = { nuevaCatId = cat.id }, 
-                                        label = { Text(cat.nombre) }
-                                    )
-                                }
-                            }
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Controlar stock", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(Modifier.width(8.dp))
-                                Switch(checked = controlaStock, onCheckedChange = { controlaStock = it })
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Recomendado", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(Modifier.width(8.dp))
-                                Switch(checked = nuevoRecomendado, onCheckedChange = { nuevoRecomendado = it })
-                            }
-                        }
-
-                        if (controlaStock) {
-                            OutlinedTextField(
-                                value = nuevoStock, 
-                                onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) nuevoStock = it }, 
-                                label = { Text("Stock inicial") }, 
-                                modifier = Modifier.fillMaxWidth(), 
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                item {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        item {
+                            FilterChip(
+                                selected = filtroCategoriaId == "Todos", 
+                                onClick = { filtroCategoriaId = "Todos" }, 
+                                label = { Text("Todos") }
                             )
                         }
-
-                        Button(
-                            onClick = {
-                                val p = nuevoPrecio.toDoubleOrNull() ?: 0.0
-                                val s = nuevoStock.toIntOrNull() ?: 0
-                                viewModel.guardarProducto(
-                                    Producto(
-                                        nombre = nuevoNombre, 
-                                        descripcion = nuevoDescripcion,
-                                        precio = p, 
-                                        categoriaId = nuevaCatId, 
-                                        stock = s, 
-                                        controlaStock = controlaStock,
-                                        recomendado = nuevoRecomendado,
-                                        activo = true
-                                    )
-                                ) {
-                                    if (it) { 
-                                        nuevoNombre = ""; nuevoDescripcion = ""; nuevoPrecio = ""; nuevaCatId = ""; nuevoStock = ""; controlaStock = false; nuevoRecomendado = false; mostrarFormularioCrear = false
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                            enabled = nuevoNombre.isNotBlank() && nuevaCatId.isNotBlank(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) { Text("Guardar Producto") }
+                        items(categorias) { cat ->
+                            FilterChip(
+                                selected = filtroCategoriaId == cat.id, 
+                                onClick = { filtroCategoriaId = cat.id }, 
+                                label = { Text(cat.nombre) }
+                            )
+                        }
+                        item {
+                            IconButton(
+                                onClick = { mostrarDialogoCat = true },
+                                modifier = Modifier.size(32.dp).background(Color(0xFF1E233D).copy(alpha = 0.1f), RoundedCornerShape(8.dp))
+                            ) { 
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp)) 
+                            }
+                        }
                     }
                 }
-            }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 80.dp) // Espacio para que el FAB no cubra el contenido
-            ) {
+                item {
+                    AnimatedVisibility(visible = mostrarFormularioCrear) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            elevation = CardDefaults.cardElevation(4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Text("Nuevo Producto", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                
+                                OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre del producto") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                                OutlinedTextField(value = nuevoDescripcion, onValueChange = { nuevoDescripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
+                                OutlinedTextField(value = nuevoPrecio, onValueChange = { nuevoPrecio = it }, label = { Text("Precio (S/.)") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = RoundedCornerShape(12.dp))
+                                
+                                Column {
+                                    Text("Categoría:", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(top = 4.dp)) {
+                                        items(categorias) { cat ->
+                                            FilterChip(
+                                                selected = nuevaCatId == cat.id, 
+                                                onClick = { nuevaCatId = cat.id }, 
+                                                label = { Text(cat.nombre) }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Controlar stock", style = MaterialTheme.typography.bodyMedium)
+                                        Spacer(Modifier.width(8.dp))
+                                        Switch(checked = controlaStock, onCheckedChange = { controlaStock = it })
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("Recomendado", style = MaterialTheme.typography.bodyMedium)
+                                        Spacer(Modifier.width(8.dp))
+                                        Switch(checked = nuevoRecomendado, onCheckedChange = { nuevoRecomendado = it })
+                                    }
+                                }
+
+                                if (controlaStock) {
+                                    OutlinedTextField(
+                                        value = nuevoStock, 
+                                        onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) nuevoStock = it }, 
+                                        label = { Text("Stock inicial") }, 
+                                        modifier = Modifier.fillMaxWidth(), 
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val p = nuevoPrecio.toDoubleOrNull() ?: 0.0
+                                        val s = nuevoStock.toIntOrNull() ?: 0
+                                        viewModel.guardarProducto(
+                                            Producto(
+                                                nombre = nuevoNombre, 
+                                                descripcion = nuevoDescripcion,
+                                                precio = p, 
+                                                categoriaId = nuevaCatId, 
+                                                stock = s, 
+                                                controlaStock = controlaStock,
+                                                recomendado = nuevoRecomendado,
+                                                activo = true
+                                            )
+                                        ) {
+                                            if (it) { 
+                                                nuevoNombre = ""; nuevoDescripcion = ""; nuevoPrecio = ""; nuevaCatId = ""; nuevoStock = ""; controlaStock = false; nuevoRecomendado = false; mostrarFormularioCrear = false
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                                    enabled = nuevoNombre.isNotBlank() && nuevaCatId.isNotBlank(),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) { Text("Guardar Producto") }
+                            }
+                        }
+                    }
+                }
+
                 val filtrados = if (filtroCategoriaId == "Todos") productos else productos.filter { it.categoriaId == filtroCategoriaId }
-                
                 items(filtrados) { prod ->
                     Card(
-                        modifier = Modifier.fillMaxWidth().clickable {
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable {
                             productoSeleccionado = prod
                             editNombre = prod.nombre
                             editDescripcion = prod.descripcion
@@ -273,7 +277,8 @@ fun GestionCatalogoScreen(
                     value = nombreNuevaCat, 
                     onValueChange = { nombreNuevaCat = it }, 
                     label = { Text("Nombre de la categoría") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 ) 
             },
             confirmButton = { 
@@ -295,12 +300,13 @@ fun GestionCatalogoScreen(
     if (productoSeleccionado != null) {
         AlertDialog(
             onDismissRequest = { productoSeleccionado = null },
-            title = { Text("Editar Producto") },
+            shape = RoundedCornerShape(28.dp),
+            title = { Text("Editar Producto", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(value = editNombre, onValueChange = { editNombre = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = editDescripcion, onValueChange = { editDescripcion = it }, label = { Text("Descripción") }, minLines = 2, modifier = Modifier.fillMaxWidth())
-                    OutlinedTextField(value = editPrecio, onValueChange = { editPrecio = it }, label = { Text("Precio") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = editNombre, onValueChange = { editNombre = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = editDescripcion, onValueChange = { editDescripcion = it }, label = { Text("Descripción") }, minLines = 2, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(value = editPrecio, onValueChange = { editPrecio = it }, label = { Text("Precio") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                     
                     Column {
                         Text("Categoría:", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
@@ -321,32 +327,21 @@ fun GestionCatalogoScreen(
                             onValueChange = { if (it.isEmpty() || it.all { c -> c.isDigit() }) editStock = it }, 
                             label = { Text("Stock disponible") }, 
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), 
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
                     
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Controlar stock")
                             Switch(checked = editControlaStock, onCheckedChange = { editControlaStock = it })
                         }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Disponible")
                             Switch(checked = editDisponible, onCheckedChange = { editDisponible = it })
                         }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Recomendado")
                             Switch(checked = editRecomendado, onCheckedChange = { editRecomendado = it })
                         }
@@ -361,7 +356,7 @@ fun GestionCatalogoScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64748B)),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Text("Configurar Ingredientes")
                     }
@@ -440,9 +435,10 @@ fun GestionCatalogoScreen(
                     OutlinedTextField(
                         value = cantidadVinculo,
                         onValueChange = { cantidadVinculo = it },
-                        label = { Text("Cantidad necesaria (ej: 0.05)") },
+                        label = { Text("Cantidad necesaria") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     )
 
                     Button(

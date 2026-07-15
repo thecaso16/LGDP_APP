@@ -57,12 +57,12 @@ class DetalleMesaViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
-    fun cancelarPedido(onCompletado: () -> Unit) {
+    fun cancelarPedido(justificacion: String, onCompletado: () -> Unit) {
         viewModelScope.launch {
             val p = _pedido.value
             if (p != null) {
                 // Si hay un pedido activo, lo anulamos (Estado CANCELADO)
-                appDao.anularPedido(p.pedidoId)
+                appDao.anularPedido(p.pedidoId, justificacion)
                 p.mesaId?.let { appDao.liberarMesa(it) }
             } else {
                 // Si no hay pedido (caso congelado), liberamos la mesa directamente

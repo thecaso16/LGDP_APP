@@ -1,6 +1,8 @@
 package com.lasgalletasdepau.lgdp_app
 
 import android.content.Intent
+import android.graphics.Paint
+import android.graphics.pdf.PdfDocument
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,9 +10,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,13 +54,14 @@ fun CuadreCajaScreen(
 
     val montoAperturaInput by viewModel.montoApertura.collectAsState()
     val egresos by viewModel.egresos.collectAsState()
+    val justificacionEgresos by viewModel.justificacionEgresos.collectAsState()
     val montoRealInput by viewModel.montoRealFisico.collectAsState()
 
     var justificacionDescuadre by remember { mutableStateOf("") }
     var mostrarDialogoJustificacion by remember { mutableStateOf(false) }
     
     val totalSistema = efectivo + yape + izipay
-    val esCajero = viewModel.tieneRolCajero()
+    val esCajero by viewModel.esCajero.collectAsState()
     val estaAbierta = cajaSesion != null
 
     val montoAperturaVal = if (estaAbierta) cajaSesion!!.montoApertura else (montoAperturaInput.toDoubleOrNull() ?: 0.0)
@@ -72,35 +74,117 @@ fun CuadreCajaScreen(
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Gestión de Caja", fontWeight = FontWeight.ExtraBold, color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onRegresar) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
-            )
+    fun exportarCierrePDF() {
+        val pdfDocument = PdfDocument()
+        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+        val page = pdfDocument.startPage(pageInfo)
+        val canvas = page.canvas
+        val paint = Paint()
+        
+        var y = 50f
+        paint.textSize = 20f
+        paint.isFakeBoldText = true
+        canvas.drawText("REPORTE DE CIERRE DE CAJA", 50f, y, paint)
+        
+        y += 40f
+        paint.textSize = 12f
+        paint.isFakeBoldText = false
+        canvas.drawText("Fecha: ${dateFormat.format(Date())}", 50f, y, paint)
+        y += 15f
+        canvas.drawText("Cajero: ${cajaSesion?.nombreCajero ?: "N/A"}", 50f, y, paint)
+        y += 15f
+        canvas.drawText("Apertura: ${if(estaAbierta) timeFormat.format(Date(cajaSesion!!.fechaApertura)) else "N/A"}", 50f, y, paint)
+        
+        y += 40f
+        paint.isFakeBoldText = true
+        canvas.drawText("RESUMEN DE MOVIMIENTOS", 50f, y, paint)
+        y += 25f
+        paint.isFakeBoldText = false
+        canvas.drawText("Monto de Apertura:", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", montoAperturaVal)}", 400f, y, paint)
+        y += 20f
+        canvas.drawText("Ingresos Efectivo:", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", efectivo)}", 400f, y, paint)
+        y += 20f
+        canvas.drawText("Ingresos Billetera Digital:", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", yape)}", 400f, y, paint)
+        y += 20f
+        canvas.drawText("Ingresos Izipay:", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", izipay)}", 400f, y, paint)
+        y += 20f
+        canvas.drawText("Egresos / Gastos:", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", egresosDouble)}", 400f, y, paint)
+        
+        if (justificacionEgresos.isNotBlank()) {
+            y += 20f
+            canvas.drawText("Justificación Egresos:", 60f, y, paint)
+            y += 15f
+            paint.textSize = 10f
+            canvas.drawText(justificacionEgresos, 70f, y, paint)
+            paint.textSize = 12f
+            y += 10f
         }
-    ) { innerPadding ->
+        
+        y += 30f
+        paint.isFakeBoldText = true
+        canvas.drawText("TOTAL REGISTRADO EN SISTEMA:", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", totalSistema)}", 400f, y, paint)
+        
+        y += 40f
+        canvas.drawText("VERIFICACIÓN FÍSICA", 50f, y, paint)
+        y += 25f
+        paint.isFakeBoldText = false
+        canvas.drawText("Efectivo Esperado (Físico):", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", esperadoFisico)}", 400f, y, paint)
+        y += 20f
+        canvas.drawText("Efectivo Real Contado:", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", montoRealDouble)}", 400f, y, paint)
+        y += 25f
+        paint.isFakeBoldText = true
+        canvas.drawText("DIFERENCIA:", 60f, y, paint)
+        canvas.drawText("S/ ${String.format(locale, "%.2f", diferencia)}", 400f, y, paint)
+        
+        if (justificacionDescuadre.isNotBlank()) {
+            y += 40f
+            canvas.drawText("JUSTIFICACIÓN:", 50f, y, paint)
+            y += 20f
+            paint.isFakeBoldText = false
+            canvas.drawText(justificacionDescuadre, 60f, y, paint)
+        }
+        
+        pdfDocument.finishPage(page)
+        val file = File(context.cacheDir, "Cierre_Caja_Actual.pdf")
+        try {
+            pdfDocument.writeTo(FileOutputStream(file))
+            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/pdf")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            pdfDocument.close()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 20.dp, bottom = 40.dp)
+            contentPadding = PaddingValues(top = 20.dp, bottom = 100.dp)
         ) {
             item {
+                Text(
+                    text = "Gestión de Caja",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E233D)
+                )
+                Spacer(Modifier.height(4.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF1E233D).copy(alpha = 0.05f)),
@@ -150,7 +234,7 @@ fun CuadreCajaScreen(
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
                                     Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray)
-                                    Spacer(Modifier.width(12.dp))
+                                    Spacer(Modifier.width(8.dp))
                                     Text("Solo un cajero puede realizar la apertura.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
                                 }
                             }
@@ -183,6 +267,19 @@ fun CuadreCajaScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
                             )
+                            
+                            if (egresosDouble > 0) {
+                                OutlinedTextField(
+                                    value = justificacionEgresos,
+                                    onValueChange = { if(puedeCerrar) viewModel.justificacionEgresos.value = it },
+                                    label = { Text("Justificación de egresos") },
+                                    placeholder = { Text("Ej. Compra de suministros...") },
+                                    readOnly = !puedeCerrar,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    minLines = 2,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -192,7 +289,7 @@ fun CuadreCajaScreen(
                     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             FilaResumenCaja("Ventas en Efectivo", efectivo, locale)
-                            FilaResumenCaja("Ventas Yape / Plin", yape, locale)
+                            FilaResumenCaja("Ventas Billetera Digital", yape, locale)
                             FilaResumenCaja("Ventas Izipay", izipay, locale)
                             HorizontalDivider(color = Color(0xFFF1F5F9))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -241,23 +338,15 @@ fun CuadreCajaScreen(
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Button(
-                                onClick = {
-                                    val csv = "Concepto;Monto\nApertura;${cajaSesion?.montoApertura}\nEgresos;${egresos}\nEfectivo;${efectivo}\nYape;${yape}\nIzipay;${izipay}\nEsperado;${esperadoFisico}\nReal;${montoRealDouble}\nDiferencia;${diferencia}"
-                                    val file = File(context.cacheDir, "Cierre_${dateFormat.format(Date()).replace("/", "-")}.csv")
-                                    try {
-                                        FileOutputStream(file).use { it.write(csv.toByteArray()) }
-                                        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-                                        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                                            type = "text/csv"
-                                            putExtra(Intent.EXTRA_STREAM, uri)
-                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                        }, "Exportar Reporte de Cierre"))
-                                    } catch (e: Exception) {}
-                                },
+                                onClick = { exportarCierrePDF() },
                                 modifier = Modifier.fillMaxWidth().height(48.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                                 shape = RoundedCornerShape(12.dp)
-                            ) { Text("Exportar Reporte Excel", fontWeight = FontWeight.Bold) }
+                            ) { 
+                                Icon(Icons.Default.PictureAsPdf, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text("Generar PDF de Cierre", fontWeight = FontWeight.Bold) 
+                            }
 
                             Button(
                                 onClick = {
@@ -270,7 +359,9 @@ fun CuadreCajaScreen(
                                         }
                                     }
                                 },
-                                enabled = montoRealInput.isNotBlank() && (abs(diferencia) < 0.01 || justificacionDescuadre.isNotBlank()),
+                                enabled = montoRealInput.isNotBlank() && 
+                                          (abs(diferencia) < 0.01 || justificacionDescuadre.isNotBlank()) &&
+                                          (egresosDouble == 0.0 || justificacionEgresos.isNotBlank()),
                                 modifier = Modifier.fillMaxWidth().height(52.dp),
                                 shape = RoundedCornerShape(26.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
@@ -280,6 +371,8 @@ fun CuadreCajaScreen(
                 }
             }
         }
+        
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
     if (mostrarDialogoJustificacion) {
@@ -290,7 +383,7 @@ fun CuadreCajaScreen(
                 OutlinedTextField(
                     value = justificacionDescuadre,
                     onValueChange = { justificacionDescuadre = it },
-                    placeholder = { Text("Ej. Error en cobro mesa 5, billete falso detectado...") },
+                    placeholder = { Text("Ej. Error en cobro mesa 5...") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     shape = RoundedCornerShape(12.dp)

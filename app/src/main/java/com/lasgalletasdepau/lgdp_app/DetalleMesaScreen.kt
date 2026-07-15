@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material3.*
@@ -42,6 +41,7 @@ fun DetalleMesaScreen(
 
     var mostrarMetodosPago by remember { mutableStateOf(false) }
     var mostrarConfirmarCancelacion by remember { mutableStateOf(false) }
+    var justificacionCancelacion by remember { mutableStateOf("") }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -55,33 +55,29 @@ fun DetalleMesaScreen(
     val totalConsumido = pedido?.total ?: 0.0
     val scrollState = rememberScrollState()
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = { Text("Estado de Cuenta", fontWeight = FontWeight.Bold, color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onRegresarAlSalon) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
-            )
-        }
-    ) { innerPadding ->
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
                 .verticalScroll(scrollState)
                 .padding(16.dp)
         ) {
+            // Header con botón de regreso
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onRegresarAlSalon) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Regresar", tint = Color(0xFF1E233D))
+                }
+                Text(
+                    text = "Estado de Cuenta",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E233D)
+                )
+            }
+
             Column(modifier = Modifier.weight(1f)) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -91,8 +87,7 @@ fun DetalleMesaScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            val mesaText = if (titulo.contains("Mesa", ignoreCase = true)) titulo else "Mesa $titulo"
-                            Text(text = mesaText, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
+                            Text(text = titulo, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
                             Surface(
                                 color = if (pedido != null) Color(0xFFE8F5E9) else Color(0xFFFFEBEE), 
                                 shape = RoundedCornerShape(8.dp)
@@ -215,6 +210,8 @@ fun DetalleMesaScreen(
                 }
             }
         }
+        
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
     if (mostrarMetodosPago) {
@@ -247,17 +244,36 @@ fun DetalleMesaScreen(
     if (mostrarConfirmarCancelacion) {
         AlertDialog(
             onDismissRequest = { mostrarConfirmarCancelacion = false },
-            title = { Text("Confirmar Acción") },
-            text = { Text("¿Está seguro que desea proceder? Esta acción liberará la mesa y anulará cualquier registro actual.") },
+            title = { Text(if (pedido != null) "Anular Comanda" else "Confirmar Acción") },
+            text = { 
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(if (pedido != null) "¿Por qué desea anular este pedido?" else "¿Está seguro que desea proceder? Esta acción liberará la mesa.")
+                    if (pedido != null) {
+                        OutlinedTextField(
+                            value = justificacionCancelacion,
+                            onValueChange = { justificacionCancelacion = it },
+                            placeholder = { Text("Ej. Error en digitación...") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.cancelarPedido {
+                        if (pedido != null && justificacionCancelacion.isBlank()) {
+                            scope.launch { snackbarHostState.showSnackbar("Debe ingresar una justificación.") }
+                            return@Button
+                        }
+                        viewModel.cancelarPedido(justificacionCancelacion) {
                             mostrarConfirmarCancelacion = false
                             onRegresarAlSalon()
                         }
                     }, 
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    enabled = pedido == null || justificacionCancelacion.isNotBlank()
                 ) {
                     Text("Confirmar")
                 }

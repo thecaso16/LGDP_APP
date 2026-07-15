@@ -7,8 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,86 +34,81 @@ fun PedidosPendientesScreen(
     val locale = LocalConfiguration.current.locales[0]
     val timeFormat = remember(locale) { SimpleDateFormat("hh:mm a", locale) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Pedidos Pendientes", fontWeight = FontWeight.Bold, color = Color.White) },
-                navigationIcon = {
-                    IconButton(onClick = onRegresar) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar", tint = Color.White)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
-            )
-        }
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF8FAFC))
-        ) {
-            if (pedidosActivos.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay pedidos activos en este momento.", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(
-                        items = pedidosActivos,
-                        key = { it.pedido.pedidoId }
-                    ) { item ->
-                        val p = item.pedido
-                        val hora = if (p.fecha != null) timeFormat.format(Date(p.fecha)) else "--"
-                        
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onVerDetalle(p.pedidoId) },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            elevation = CardDefaults.cardElevation(1.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8FAFC))
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Pedidos Pendientes",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color(0xFF1E233D),
+            modifier = Modifier.padding(top = 20.dp, bottom = 4.dp)
+        )
+        Text(
+            text = "Comandas activas esperando atención:",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF64748B),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        if (pedidosActivos.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No hay pedidos activos en este momento.", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                items(
+                    items = pedidosActivos,
+                    key = { it.pedido.pedidoId }
+                ) { item ->
+                    val p = item.pedido
+                    val hora = if (p.fecha != null) timeFormat.format(Date(p.fecha)) else "--"
+                    
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onVerDetalle(p.pedidoId) },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(1.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = "Orden #${p.numeroPedido}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
-                                    Text(
-                                        text = "$hora | ${if(p.mesaId != null) "Mesa ${p.mesaId}" else "Para llevar"}", 
-                                        style = MaterialTheme.typography.bodySmall, 
-                                        color = Color.Gray
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        text = item.detalles.joinToString { "${it.cantidad}x ${it.nombreProducto}" },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color(0xFF64748B),
-                                        maxLines = 1
-                                    )
-                                }
-
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(text = "Orden #${p.numeroPedido}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
                                 Text(
-                                    text = String.format("S/ %.2f", p.total),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Black,
-                                    color = Color(0xFF1E233D),
-                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                    text = "$hora | ${if(p.mesaId != null) "Mesa ${p.mesaId}" else "Para llevar"}", 
+                                    style = MaterialTheme.typography.bodySmall, 
+                                    color = Color.Gray
                                 )
-
-                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = item.detalles.joinToString { "${it.cantidad}x ${it.nombreProducto}" },
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF64748B),
+                                    maxLines = 1
+                                )
                             }
+
+                            Text(
+                                text = String.format(locale, "S/ %.2f", p.total),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black,
+                                color = Color(0xFF1E233D),
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
                         }
                     }
                 }

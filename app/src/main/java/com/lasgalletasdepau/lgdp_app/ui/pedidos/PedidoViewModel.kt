@@ -17,9 +17,9 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     private val appDao = AppDatabase.getDatabase(application).appDao()
     private val syncManager = com.lasgalletasdepau.lgdp_app.data.remote.SyncManager.getInstance(application)
 
-    // Usuario logueado (Mozo)
-    private val _usuarioLogueado = MutableStateFlow<UsuarioEntity?>(null)
-    val usuarioLogueado: StateFlow<UsuarioEntity?> = _usuarioLogueado
+    // Observar al usuario de forma reactiva
+    val usuarioLogueado: StateFlow<UsuarioEntity?> = appDao.obtenerUsuarioLogueado()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // Categorías y Productos
     val categorias: StateFlow<List<CategoriaEntity>> = appDao.obtenerCategorias()
@@ -46,31 +46,42 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     val pedidosActivos: StateFlow<List<PedidoConDetalles>> = _pedidosActivos
 
     init {
-        cargarUsuario()
         observarPedidosActivos()
     }
 
     private fun observarPedidosActivos() {
         viewModelScope.launch {
+            // Esperar a que el usuario esté cargado para filtrar correctamente
+            usuarioLogueado.collect { user ->
+                if (user != null) {
+                    actualizarPedidosActivos(user)
+                }
+            }
+        }
+        
+        // Loop de sincronización periódica
+        viewModelScope.launch {
             while(true) {
                 try {
-                    syncManager.sincronizarTodo()
+                    syncManager.sincronizarPedidosYEstado()
+                    val user = usuarioLogueado.value
+                    if (user != null) {
+                        actualizarPedidosActivos(user)
+                    }
                 } catch(e: Exception) {}
-
-                val lista = appDao.obtenerPedidosActivosGenerales()
-                val resultado = lista.map { pedido ->
-                    PedidoConDetalles(pedido, appDao.obtenerDetallesPorPedido(pedido.pedidoId))
-                }
-                _pedidosActivos.value = resultado
                 delay(10000)
             }
         }
     }
 
-    private fun cargarUsuario() {
-        viewModelScope.launch {
-            _usuarioLogueado.value = appDao.obtenerUsuarioLogueado()
+    private suspend fun actualizarPedidosActivos(user: UsuarioEntity) {
+        // Por defecto mozos solo ven sus pedidos activos. 
+        // Si se requiere que vean todos, cambiar verTodo a 1.
+        val lista = appDao.obtenerPedidosActivos(user.uid, 0)
+        val resultado = lista.map { pedido ->
+            PedidoConDetalles(pedido, appDao.obtenerDetallesPorPedido(pedido.pedidoId))
         }
+        _pedidosActivos.value = resultado
     }
 
     fun limpiarCarrito() {
@@ -104,19 +115,12 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
             val detalleExistente = currentCarrito[producto.productoId]
             val nuevaCantidad = (detalleExistente?.cantidad ?: 0) + 1
 
-            // 1. Si controla stock, primero vemos si hay stock físico ya preparado
             if (producto.controlaStock) {
                 if (nuevaCantidad > producto.stock) {
-                    // Si ya no hay stock preparado, intentamos ver si se puede "hacer" más con insumos? 
-                    // El usuario dice: "mas no aumentar porque ya no queda harina"
-                    // Interpretación: Si hay stock, se vende. Si se acaba el stock, se bloquea si no hay insumos.
-                    // Pero usualmente si "controlaStock" es true, es que es algo ya hecho.
                     _errorEvent.emit("Stock insuficiente de ${producto.nombre}")
                     return@launch
                 }
-                // Si hay stock preparado, no validamos insumos (ya se usaron)
             } else {
-                // 2. Si NO controla stock (ej. Café hecho al momento), validamos insumos
                 val relaciones = appDao.obtenerInsumosPorProducto(producto.productoId)
                 if (relaciones.isNotEmpty()) {
                     val todosInsumos = appDao.obtenerInsumos().first()
@@ -133,7 +137,6 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
 
-            // 3. Agregar al carrito
             if (detalleExistente != null) {
                 currentCarrito[producto.productoId] = detalleExistente.copy(cantidad = nuevaCantidad)
             } else {
@@ -164,29 +167,25 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
         _carrito.value = currentCarrito
     }
 
-    fun actualizarComentario(productoId: String, comentario: String) {
-        // Mantenemos la función para no romper compatibilidad, pero ya no se usa en UI
-    }
-
     fun actualizarNotasGlobales(notas: String) {
         _notasGlobales.value = notas
     }
 
     fun guardarPedido(mesaId: Int?, clienteNombre: String?, onCompletado: () -> Unit) {
         viewModelScope.launch {
-            val user = _usuarioLogueado.value
+            val user = usuarioLogueado.value
             val idFinal = pedidoExistenteId ?: UUID.randomUUID().toString()
             val total = _carrito.value.values.sumOf { it.cantidad * it.precioUnitario }
 
-            // Buscar si hay una caja abierta para anexar el pedido
             val cajaAbierta = appDao.obtenerCajaAbiertaSync()
 
             val pedidoActual = if (pedidoExistenteId != null) {
-                appDao.obtenerPedidoPorId(idFinal)?.copy(
+                val pExistente = appDao.obtenerPedidoPorId(idFinal)
+                pExistente?.copy(
                     total = total,
-                    usuarioId = user?.uid,
+                    usuarioId = pExistente.usuarioId ?: user?.uid,
                     notas = _notasGlobales.value,
-                    cajaId = cajaAbierta?.cajaId, // Se asocia a la caja actual
+                    cajaId = cajaAbierta?.cajaId,
                     sincronizado = false
                 )
             } else {
@@ -202,7 +201,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     total = total,
                     usuarioId = user?.uid,
                     notas = _notasGlobales.value,
-                    cajaId = cajaAbierta?.cajaId, // Se asocia a la caja actual
+                    cajaId = cajaAbierta?.cajaId,
                     sincronizado = false
                 )
             }

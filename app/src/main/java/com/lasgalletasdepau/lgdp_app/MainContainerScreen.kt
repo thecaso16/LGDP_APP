@@ -1,36 +1,41 @@
 package com.lasgalletasdepau.lgdp_app
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.PointOfSale
-import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.filled.TableRestaurant
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
+import com.lasgalletasdepau.lgdp_app.ui.pedidos.CajaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainContainerScreen(
     userRole: String?,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    viewModel: CajaViewModel = viewModel()
 ) {
     // 0: Salón
     // 1: Pendientes
-    // 2: Detalle Mesa (No visible en barra)
+    // 2: Detalle Mesa
     // 3: Caja
     // 4: Historial
+    // 5: PedidoScreen
     var pantallaActual by remember { mutableStateOf(0) }
 
+    val user by viewModel.usuarioLogueado.collectAsState()
     var mesaSeleccionadaId by remember { mutableStateOf<Int?>(null) }
     var clienteNombreSeleccionado by remember { mutableStateOf<String?>(null) }
     var pedidoSeleccionadoId by remember { mutableStateOf<String?>(null) }
@@ -39,13 +44,51 @@ fun MainContainerScreen(
     val esCajero = roles.contains(RolUsuario.CAJERO) || roles.contains(RolUsuario.ADMINISTRADOR)
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White.copy(alpha = 0.15f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "${user?.nombres ?: "Usuario"} ${user?.apellidos ?: ""}",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = user?.rol ?: "Trabajador",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onLogout) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
+            )
+        },
         bottomBar = {
             NavigationBar(
                 containerColor = Color(0xFF1E233D),
                 contentColor = Color.White,
                 tonalElevation = 8.dp
             ) {
-                // PESTAÑA 1: SALON
                 NavigationBarItem(
                     selected = pantallaActual == 0,
                     onClick = { 
@@ -54,8 +97,8 @@ fun MainContainerScreen(
                         pedidoSeleccionadoId = null
                         pantallaActual = 0 
                     },
-                    icon = { Icon(Icons.Default.TableRestaurant, contentDescription = "Salon") },
-                    label = { Text("Salon", fontWeight = FontWeight.Bold) },
+                    icon = { Icon(Icons.Default.TableRestaurant, contentDescription = "Salón") },
+                    label = { Text("Salón") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E233D),
                         selectedTextColor = Color.White,
@@ -65,7 +108,6 @@ fun MainContainerScreen(
                     )
                 )
 
-                // PESTAÑA 2: PENDIENTES
                 NavigationBarItem(
                     selected = pantallaActual == 1,
                     onClick = { 
@@ -75,7 +117,7 @@ fun MainContainerScreen(
                         pantallaActual = 1 
                     },
                     icon = { Icon(Icons.Default.ShoppingBag, contentDescription = "Pendientes") },
-                    label = { Text("Pendientes", fontWeight = FontWeight.Bold) },
+                    label = { Text("Pendientes") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E233D),
                         selectedTextColor = Color.White,
@@ -85,12 +127,11 @@ fun MainContainerScreen(
                     )
                 )
 
-                // PESTAÑA 3: HISTORIAL
                 NavigationBarItem(
                     selected = pantallaActual == 4,
                     onClick = { pantallaActual = 4 },
                     icon = { Icon(Icons.Default.History, contentDescription = "Historial") },
-                    label = { Text("Historial", fontWeight = FontWeight.Bold) },
+                    label = { Text("Historial") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E233D),
                         selectedTextColor = Color.White,
@@ -100,13 +141,12 @@ fun MainContainerScreen(
                     )
                 )
 
-                // PESTAÑA 4: CAJA (Solo visible para Cajeros o Admin)
                 if (esCajero) {
                     NavigationBarItem(
                         selected = pantallaActual == 3,
                         onClick = { pantallaActual = 3 },
                         icon = { Icon(Icons.Default.PointOfSale, contentDescription = "Caja") },
-                        label = { Text("Caja", fontWeight = FontWeight.Bold) },
+                        label = { Text("Caja") },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color(0xFF1E233D),
                             selectedTextColor = Color.White,
@@ -119,7 +159,7 @@ fun MainContainerScreen(
             }
         }
     ) { innerPadding ->
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
@@ -172,7 +212,6 @@ fun MainContainerScreen(
                         onLogout = onLogout
                     )
                 } else {
-                    // Fallback por si acaso
                     pantallaActual = 0
                 }
                 4 -> ReportesTrabajadoresScreen(

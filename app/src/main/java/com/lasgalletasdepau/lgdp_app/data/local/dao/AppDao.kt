@@ -58,8 +58,8 @@ interface AppDao {
     @Query("SELECT * FROM pedidos WHERE pedidoId = :pedidoId")
     suspend fun obtenerPedidoPorId(pedidoId: String): PedidoEntity?
 
-    @Query("SELECT * FROM pedidos WHERE estado != 'PAGADO' AND estado != 'CANCELADO' ORDER BY fecha DESC")
-    suspend fun obtenerPedidosActivosGenerales(): List<PedidoEntity>
+    @Query("SELECT * FROM pedidos WHERE (usuarioId = :usuarioId OR :verTodo = 1) AND estado != 'PAGADO' AND estado != 'CANCELADO' ORDER BY fecha DESC")
+    suspend fun obtenerPedidosActivos(usuarioId: String, verTodo: Int): List<PedidoEntity>
 
     @Query("SELECT * FROM pedidos WHERE (usuarioId = :usuarioId OR :verTodo = 1) AND fecha >= :inicio AND fecha <= :fin ORDER BY fecha DESC")
     suspend fun obtenerPedidosHistorial(usuarioId: String, inicio: Long, fin: Long, verTodo: Int): List<PedidoEntity>
@@ -70,8 +70,8 @@ interface AppDao {
     @Query("UPDATE pedidos SET estado = :nuevoEstado, metodoPago = :metodo, fecha = :fechaPago, sincronizado = 0 WHERE pedidoId = :pedidoId")
     suspend fun actualizarEstadoPedido(pedidoId: String, nuevoEstado: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago?, fechaPago: Long)
 
-    @Query("UPDATE pedidos SET estado = 'CANCELADO', sincronizado = 0 WHERE pedidoId = :pedidoId")
-    suspend fun anularPedido(pedidoId: String)
+    @Query("UPDATE pedidos SET estado = 'CANCELADO', notas = :justificacion, sincronizado = 0 WHERE pedidoId = :pedidoId")
+    suspend fun anularPedido(pedidoId: String, justificacion: String)
 
     @Transaction
     suspend fun finalizarVenta(pedidoId: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago, mesaId: Int?) {
@@ -121,8 +121,23 @@ interface AppDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarUsuario(usuario: UsuarioEntity)
 
+    @Query("SELECT * FROM usuarios WHERE uid = :uid")
+    suspend fun obtenerUsuarioPorId(uid: String): UsuarioEntity?
+
     @Query("SELECT * FROM usuarios LIMIT 1")
-    suspend fun obtenerUsuarioLogueado(): UsuarioEntity?
+    fun obtenerUsuarioLogueado(): Flow<UsuarioEntity?>
+
+    @Query("SELECT * FROM usuarios LIMIT 1")
+    suspend fun obtenerUsuarioLogueadoSync(): UsuarioEntity?
+
+    @Query("DELETE FROM usuarios")
+    suspend fun limpiarUsuarios()
+
+    @Transaction
+    suspend fun suplantarUsuario(usuario: UsuarioEntity) {
+        limpiarUsuarios()
+        insertarUsuario(usuario)
+    }
 
     @Query("DELETE FROM usuarios")
     suspend fun cerrarSesionLocal()
