@@ -23,9 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.CajaViewModel
+import com.lasgalletasdepau.lgdp_app.ui.pedidos.ModoHistorial
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoConDetalles
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.ReportesTrabajadoresViewModel
 import java.io.File
@@ -43,6 +46,7 @@ fun ReportesTrabajadoresScreen(
 ) {
     val context = LocalContext.current
     val historial by viewModel.historial.collectAsState()
+    val modo by viewModel.modo.collectAsState()
     val usuario by viewModel.usuarioLogueado.collectAsState()
     val cajaAbierta by cajaViewModel.cajaSesion.collectAsState()
 
@@ -67,11 +71,15 @@ fun ReportesTrabajadoresScreen(
         return localCalendar.timeInMillis
     }
 
-    LaunchedEffect(datePickerStateStart.selectedDateMillis, datePickerStateEnd.selectedDateMillis, usuario) {
+    LaunchedEffect(modo, datePickerStateStart.selectedDateMillis, datePickerStateEnd.selectedDateMillis, usuario) {
         if (usuario != null) {
-            val startStr = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))
-            val endStr = sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))
-            viewModel.buscarPorRango(startStr, endStr)
+            if (modo == ModoHistorial.TURNO_ACTUAL) {
+                viewModel.cargarPedidosTurnoActual()
+            } else {
+                val startStr = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))
+                val endStr = sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))
+                viewModel.buscarPorRango(startStr, endStr)
+            }
         }
     }
 
@@ -90,109 +98,169 @@ fun ReportesTrabajadoresScreen(
     }
 
     fun exportarHistorialPDF() {
-        val generator = com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator(context)
-        generator.startNewPage("Historial de Ventas")
-        
-        generator.addLabeledText("Trabajador:", "${usuario?.nombres} ${usuario?.apellidos}")
-        generator.addLabeledText("Periodo:", "${sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))} al ${sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))}")
-        generator.addHorizontalLine()
-
-        generator.addRow(listOf("Nº Orden", "Fecha/Hora", "Cliente", "Mesa", "Total"), listOf(1.5f, 2.5f, 2f, 1.5f, 1.5f), isHeader = true)
-        generator.addHorizontalLine()
-
-        historial.forEach { item ->
-            val p = item.pedido
-            val fechaStr = if (p.fecha != null) sdf.format(Date(p.fecha)) else "-"
-            val horaStr = if (p.fecha != null) timeSdf.format(Date(p.fecha)) else "-"
-            
-            generator.addRow(
-                listOf(
-                    "#${p.numeroPedido}",
-                    "$fechaStr $horaStr",
-                    p.nombreCliente ?: "General",
-                    if (p.mesaId != null) "Mesa ${p.mesaId}" else "Llevar",
-                    "S/ ${String.format(locale, "%.2f", p.total)}"
-                ),
-                listOf(1.5f, 2.5f, 2f, 1.5f, 1.5f)
-            )
-
-            // Detalle de productos en tamaño pequeño
-            item.detalles.forEach { d ->
-                generator.addText("      • ${d.cantidad}x ${d.nombreProducto} (S/ ${String.format(locale, "%.2f", d.precioUnitario)})", fontSize = 8f, color = android.graphics.Color.DKGRAY, spaceAfter = 12f)
-            }
-            generator.addHorizontalLine()
-        }
-
-        val pdfDocument = generator.finish()
-        val file = File(context.cacheDir, "Historial_Ventas_Propio.pdf")
         try {
-            pdfDocument.writeTo(FileOutputStream(file))
-            val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            val generator = com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator(context)
+            generator.startNewPage("Historial de Ventas")
+            
+            val periodoTexto = if (modo == ModoHistorial.TURNO_ACTUAL) {
+                "Turno Actual (desde ${cajaAbierta?.fechaApertura?.let { sdf.format(Date(it)) } ?: "-"})"
+            } else {
+                "${sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))} al ${sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))}"
+            }
+
+            generator.addLabeledText("Generado por:", "${usuario?.nombres} ${usuario?.apellidos}")
+            generator.addLabeledText("Periodo:", periodoTexto)
+            generator.addHorizontalLine()
+
+            generator.addRow(listOf("Nº Orden", "Fecha/Hora", "Cliente", "Mesa", "Total"), listOf(1.5f, 2.5f, 2f, 1.5f, 1.5f), isHeader = true)
+            generator.addHorizontalLine()
+
+            historial.forEach { item ->
+                val p = item.pedido
+                val fechaStr = if (p.fecha != null) sdf.format(Date(p.fecha)) else "-"
+                val horaStr = if (p.fecha != null) timeSdf.format(Date(p.fecha)) else "-"
+                
+                generator.addRow(
+                    listOf(
+                        "#${p.numeroPedido}",
+                        "$fechaStr $horaStr",
+                        p.nombreCliente ?: "General",
+                        if (p.mesaId != null) "Mesa ${p.mesaId}" else "Llevar",
+                        "S/ ${String.format(locale, "%.2f", p.total)}"
+                    ),
+                    listOf(1.5f, 2.5f, 2f, 1.5f, 1.5f)
+                )
+
+                // Atendido por
+                generator.addText("      Atendido por: ${p.usuarioNombre ?: "Sistema"}", fontSize = 8f, color = android.graphics.Color.GRAY)
+
+                // Detalle de productos en tamaño pequeño
+                item.detalles.forEach { d ->
+                    generator.addText("      • ${d.cantidad}x ${d.nombreProducto} (S/ ${String.format(locale, "%.2f", d.precioUnitario)})", fontSize = 8f, color = android.graphics.Color.DKGRAY, spaceAfter = 12f)
+                }
+                generator.addHorizontalLine()
+            }
+
+            val pdfDocument = generator.finish()
+            val fileName = "Historial_Ventas_${System.currentTimeMillis()}.pdf"
+            val file = File(context.cacheDir, fileName)
+            
+            FileOutputStream(file).use { out ->
+                pdfDocument.writeTo(out)
+            }
+            pdfDocument.close()
+
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context, 
+                "${context.packageName}.fileprovider", 
+                file
+            )
+            
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/pdf")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(intent)
+            
+            val chooser = Intent.createChooser(intent, "Abrir reporte PDF")
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+            
         } catch (e: Exception) {
             e.printStackTrace()
-        } finally {
-            pdfDocument.close()
+            // Podrías mostrar un Toast aquí si tienes acceso al context
         }
     }
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC)).padding(horizontal = 16.dp)) {
-        Text(
-            text = "Historial de Transacciones",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1E233D),
-            modifier = Modifier.padding(top = 20.dp, bottom = 4.dp)
-        )
-        Text(
-            text = "Consulta tus ventas y movimientos registrados:",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF64748B),
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(1.dp)) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Filtrar periodo", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis))),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Desde") },
-                        trailingIcon = { IconButton(onClick = { showStartDatePicker = true }) { Icon(Icons.Default.CalendarMonth, null) } },
-                        modifier = Modifier.weight(1f).clickable { showStartDatePicker = true },
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    OutlinedTextField(
-                        value = sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis))),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Hasta") },
-                        trailingIcon = { IconButton(onClick = { showEndDatePicker = true }) { Icon(Icons.Default.CalendarMonth, null) } },
-                        modifier = Modifier.weight(1f).clickable { showEndDatePicker = true },
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-                
-                Button(
-                    onClick = { exportarHistorialPDF() },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.PictureAsPdf, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Exportar PDF de mis ventas")
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = if (modo == ModoHistorial.TURNO_ACTUAL) "Pedidos del Turno" else "Búsqueda Histórica",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF1E233D)
+                )
+                Text(
+                    text = if (modo == ModoHistorial.TURNO_ACTUAL) "Ventas totales de la caja abierta" else "Consulta ventas de días anteriores",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF64748B)
+                )
+            }
+            if (modo == ModoHistorial.BUSQUEDA_HISTORICA) {
+                IconButton(onClick = { viewModel.cambiarModo(ModoHistorial.TURNO_ACTUAL) }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Regresar")
                 }
             }
         }
 
-        Text("Movimientos Encontrados (${historial.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (modo == ModoHistorial.TURNO_ACTUAL) {
+            Button(
+                onClick = { viewModel.cambiarModo(ModoHistorial.BUSQUEDA_HISTORICA) },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.History, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Ver historial de días anteriores")
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(1.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Filtrar periodo", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis))),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Desde") },
+                            trailingIcon = { IconButton(onClick = { showStartDatePicker = true }) { Icon(Icons.Default.CalendarMonth, null) } },
+                            modifier = Modifier.weight(1f).clickable { showStartDatePicker = true },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        OutlinedTextField(
+                            value = sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis))),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Hasta") },
+                            trailingIcon = { IconButton(onClick = { showEndDatePicker = true }) { Icon(Icons.Default.CalendarMonth, null) } },
+                            modifier = Modifier.weight(1f).clickable { showEndDatePicker = true },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Botón de exportación (siempre visible o según prefieras)
+        Button(
+            onClick = { exportarHistorialPDF() },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.PictureAsPdf, null)
+            Spacer(Modifier.width(8.dp))
+            Text(if (modo == ModoHistorial.TURNO_ACTUAL) "Exportar ventas del turno" else "Exportar búsqueda")
+        }
+
+        Text(
+            text = if (modo == ModoHistorial.TURNO_ACTUAL) "Ventas del Turno (${historial.size})" else "Resultados de Búsqueda (${historial.size})",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF1E233D)
+        )
 
         if (historial.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No hay transacciones registradas.", color = Color.Gray) }
@@ -223,6 +291,7 @@ fun ReportesTrabajadoresScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Pedido #${pedido.numeroPedido}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                                 Text("$fechaStr | $hora", fontSize = 12.sp, color = Color.Gray)
+                                Text("Atendido por: ${pedido.usuarioNombre ?: "Sistema"}", fontSize = 11.sp, color = Color(0xFF64748B))
                                 Text(
                                     text = pedido.estado?.valor ?: "Sin estado", 
                                     color = statusColor, 
@@ -262,6 +331,10 @@ fun ReportesTrabajadoresScreen(
             },
             text = {
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Atendido por:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                        Text(p.usuarioNombre ?: "Sistema", style = MaterialTheme.typography.bodyMedium)
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Cliente:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
                         Text(p.nombreCliente ?: "General", style = MaterialTheme.typography.bodyMedium)

@@ -18,6 +18,11 @@ data class PedidoConDetalles(
     val detalles: List<PedidoDetalleEntity>
 )
 
+enum class ModoHistorial {
+    TURNO_ACTUAL,
+    BUSQUEDA_HISTORICA
+}
+
 class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel(application) {
     private val appDao = AppDatabase.getDatabase(application).appDao()
     private val syncManager = com.lasgalletasdepau.lgdp_app.data.remote.SyncManager.getInstance(application)
@@ -26,8 +31,31 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
     val usuarioLogueado: StateFlow<UsuarioEntity?> = appDao.obtenerUsuarioLogueado()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    private val _modo = MutableStateFlow(ModoHistorial.TURNO_ACTUAL)
+    val modo: StateFlow<ModoHistorial> = _modo
+
     private val _historial = MutableStateFlow<List<PedidoConDetalles>>(emptyList())
     val historial: StateFlow<List<PedidoConDetalles>> = _historial
+
+    fun cambiarModo(nuevoModo: ModoHistorial) {
+        _modo.value = nuevoModo
+        if (nuevoModo == ModoHistorial.TURNO_ACTUAL) {
+            cargarPedidosTurnoActual()
+        }
+    }
+
+    fun cargarPedidosTurnoActual() {
+        val user = usuarioLogueado.value ?: return
+        viewModelScope.launch {
+            val sesion = appDao.obtenerCajaAbiertaSync()
+            if (sesion != null) {
+                // Durante el turno actual, todos ven todos los pedidos (verTodo = 1)
+                actualizarHistorialLocal(user.uid, sesion.fechaApertura, System.currentTimeMillis() + 86400000, verTodoManual = 1)
+            } else {
+                _historial.value = emptyList()
+            }
+        }
+    }
 
     fun esCajeroOAdmin(): Boolean {
         val user = usuarioLogueado.value ?: return false
@@ -81,12 +109,10 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
         }
     }
 
-    private suspend fun actualizarHistorialLocal(uid: String, inicio: Long, fin: Long) {
-        // Los trabajadores solo ven sus propios pedidos (verTodo = 0)
-        // Los administradores podrían ver todo (verTodo = 1) si se desea, 
-        // pero para evitar la mezcla reportada, mantendremos el filtro estricto por ahora.
-        val roles = RolUsuario.fromStringList(usuarioLogueado.value?.rol)
-        val verTodo = if (roles.contains(RolUsuario.ADMINISTRADOR)) 1 else 0
+    private suspend fun actualizarHistorialLocal(uid: String, inicio: Long, fin: Long, verTodoManual: Int? = null) {
+        // Para este reporte, permitimos ver toda la actividad del negocio (verTodo = 1)
+        // ya que los trabajadores necesitan ver pedidos de otros compañeros en la misma caja.
+        val verTodo = verTodoManual ?: 1
         
         val pedidos = appDao.obtenerPedidosHistorial(uid, inicio, fin, verTodo)
         val resultado = pedidos.map { pedido ->

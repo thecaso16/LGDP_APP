@@ -26,10 +26,10 @@ fun AdminContainerScreen(
 ) {
     // 0: Gestión de Personal
     // 1: Catálogo de Productos
-    // 2: Inventario de Insumos
+    // 2: Inventario de Insumos (Oculto)
     // 3: Reportes del Negocio
     // 4: Desempeño de Equipo
-    var pantallaActual by remember { mutableStateOf(2) }
+    var pantallaActual by remember { mutableStateOf(0) }
     val user by viewModel.usuarioLogueado.collectAsState()
 
     Scaffold(
@@ -104,7 +104,7 @@ fun AdminContainerScreen(
                         unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )
                 )
-                NavigationBarItem(
+                /* NavigationBarItem(
                     selected = pantallaActual == 2,
                     onClick = { pantallaActual = 2 },
                     icon = { Icon(Icons.Default.Inventory, contentDescription = "Insumos") },
@@ -116,7 +116,7 @@ fun AdminContainerScreen(
                         unselectedIconColor = Color.White.copy(alpha = 0.6f),
                         unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )
-                )
+                ) */
                 NavigationBarItem(
                     selected = pantallaActual == 3,
                     onClick = { pantallaActual = 3 },
@@ -154,7 +154,7 @@ fun AdminContainerScreen(
             when (pantallaActual) {
                 0 -> GestionUsuariosScreen(onLogout = onLogout)
                 1 -> GestionCatalogoScreen(onLogout = onLogout)
-                2 -> GestionInventarioScreen(onLogout = onLogout)
+                // 2 -> GestionInventarioScreen(onLogout = onLogout)
                 3 -> ReportesNegocioScreen(onLogout = onLogout)
                 4 -> DesempenoPedidosScreen(onLogout = onLogout)
             }

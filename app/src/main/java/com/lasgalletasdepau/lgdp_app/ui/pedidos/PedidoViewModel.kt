@@ -184,6 +184,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                 pExistente?.copy(
                     total = total,
                     usuarioId = pExistente.usuarioId ?: user?.uid,
+                    usuarioNombre = pExistente.usuarioNombre ?: "${user?.nombres} ${user?.apellidos}",
                     notas = _notasGlobales.value,
                     cajaId = cajaAbierta?.cajaId,
                     sincronizado = false
@@ -200,6 +201,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     nombreCliente = clienteNombre,
                     total = total,
                     usuarioId = user?.uid,
+                    usuarioNombre = "${user?.nombres} ${user?.apellidos}",
                     notas = _notasGlobales.value,
                     cajaId = cajaAbierta?.cajaId,
                     sincronizado = false

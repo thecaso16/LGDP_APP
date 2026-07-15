@@ -21,33 +21,15 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c633ad9c-f2ec-44cb-ad1a-fde1d893cd6d" name="Changes" comment="Trabajador terminado.&#10;Administrador solo falta la pantalla insumos lo demas esta operativo y funcionando.">
-      <change afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/utils/PdfReportGenerator.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/executionHistory/executionHistory.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/fileHashes.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/resourceHashesCache.bin" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/9.4.1/fileHashes/resourceHashesCache.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" beforeDir="false" afterPath="$PROJECT_DIR$/.gradle/buildOutputCleanup/buildOutputCleanup.lock" afterDir="false" />
+    <list default="true" id="c633ad9c-f2ec-44cb-ad1a-fde1d893cd6d" name="Changes" comment="Casi casito terminado xD">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/AdminContainerScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/AdminContainerScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/CuadreCajaScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/CuadreCajaScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/DesempenoPedidosScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/DesempenoPedidosScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/GestionCatalogoScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/GestionCatalogoScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/GestionInventarioScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/GestionInventarioScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/GestionUsuariosScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/GestionUsuariosScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/MainActivity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/MainActivity.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/MainContainerScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/MainContainerScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ReportesNegocioScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ReportesNegocioScreen.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ReportesTrabajadoresScreen.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ReportesTrabajadoresScreen.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/AppConverters.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/AppConverters.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/entity/CajaDetalleEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/entity/CajaDetalleEntity.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/entity/PedidoEntity.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/local/entity/PedidoEntity.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/remote/SyncManager.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/data/remote/SyncManager.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/domain/model/MetodoPago.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/domain/model/MetodoPago.kt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/admin/DesempenoPedidosViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/admin/DesempenoPedidosViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/admin/ReportesNegocioViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/admin/ReportesNegocioViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/login/LoginViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/login/LoginViewModel.kt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/CajaViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/CajaViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/PedidoViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/PedidoViewModel.kt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/ReportesTrabajadoresViewModel.kt" beforeDir="false" afterPath="$PROJECT_DIR$/app/src/main/java/com/lasgalletasdepau/lgdp_app/ui/pedidos/ReportesTrabajadoresViewModel.kt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -332,7 +314,15 @@
       <option name="project" value="LOCAL" />
       <updated>1784099021190</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Casi casito terminado xD">
+      <option name="closed" value="true" />
+      <created>1784107359196</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1784107359196</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -372,7 +362,8 @@
     <MESSAGE value="Mejora en la UI: elimine los emojis para que se vea mas profesional, entre otras cosas todo enfocado en la UI.&#10;&#10;Pequeños arreglos en cuanto a logica y funcionalidad, la parte de trabajaor esta completa.&#10;&#10;Pequeños cambios en la parte de Admin pero aun falta terminar." />
     <MESSAGE value="Ajustes en Trabajador." />
     <MESSAGE value="Trabajador terminado.&#10;Administrador solo falta la pantalla insumos lo demas esta operativo y funcionando." />
-    <option name="LAST_COMMIT_MESSAGE" value="Trabajador terminado.&#10;Administrador solo falta la pantalla insumos lo demas esta operativo y funcionando." />
+    <MESSAGE value="Casi casito terminado xD" />
+    <option name="LAST_COMMIT_MESSAGE" value="Casi casito terminado xD" />
   </component>
   <component name="play_dynamic_filters_status">
     <option name="appIdToCheckInfo">

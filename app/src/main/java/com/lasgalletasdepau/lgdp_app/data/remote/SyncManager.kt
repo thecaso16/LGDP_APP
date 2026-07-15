@@ -194,6 +194,8 @@ class SyncManager(
                 .whereIn("estado", listOf("PENDIENTE", "PREPARADO"))
                 .get().await()
 
+            val cacheUsuarios = mutableMapOf<String, String>()
+
             for (doc in snapshot.documents) {
                 val pedidoId = doc.id
                 val local = appDao.obtenerPedidoPorId(pedidoId)
@@ -201,6 +203,27 @@ class SyncManager(
                 if (local == null || local.sincronizado) {
                     val firebaseTimestamp = doc.getTimestamp("fecha")
                     val firebaseFecha = firebaseTimestamp?.toDate()?.time ?: 0L
+
+                    val uid = doc.getString("usuarioId")
+                    var nombre = doc.getString("usuarioNombre")
+
+                    if (nombre.isNullOrBlank() && uid != null) {
+                        nombre = cacheUsuarios.getOrPut(uid) {
+                            try {
+                                // 1. Intentar local
+                                val userLocal = appDao.obtenerUsuarioPorId(uid)
+                                if (userLocal != null) {
+                                    "${userLocal.nombres} ${userLocal.apellidos}".trim()
+                                } else {
+                                    // 2. Intentar Firestore
+                                    val userDoc = firestore.collection("usuarios").document(uid).get().await()
+                                    val n = userDoc.getString("nombres") ?: ""
+                                    val a = userDoc.getString("apellidos") ?: ""
+                                    "$n $a".trim().ifEmpty { "Trabajador" }
+                                }
+                            } catch (e: Exception) { "Trabajador" }
+                        }
+                    }
 
                     val pedido = PedidoEntity(
                         pedidoId = pedidoId,
@@ -212,7 +235,8 @@ class SyncManager(
                         metodoPago = MetodoPago.fromString(doc.getString("metodoPago")),
                         nombreCliente = doc.getString("nombreCliente"),
                         total = doc.getDouble("total") ?: 0.0,
-                        usuarioId = doc.getString("usuarioId"),
+                        usuarioId = uid,
+                        usuarioNombre = nombre,
                         notas = doc.getString("notas"),
                         cajaId = doc.getString("cajaId"),
                         sincronizado = true
@@ -274,17 +298,38 @@ class SyncManager(
             val startTimestamp = Timestamp(Date(inicio))
             val endTimestamp = Timestamp(Date(fin))
 
-            // Optimizamos la consulta a Firebase filtrando por usuario para evitar traer datos ajenos
             val snapshot = firestore.collection("pedidos")
-                .whereEqualTo("usuarioId", usuarioId)
                 .whereGreaterThanOrEqualTo("fecha", startTimestamp)
                 .whereLessThanOrEqualTo("fecha", endTimestamp)
                 .get().await()
+
+            val cacheUsuarios = mutableMapOf<String, String>()
 
             for (doc in snapshot.documents) {
                 val pedidoId = doc.id
                 val firebaseTimestamp = doc.getTimestamp("fecha")
                 val firebaseFecha = firebaseTimestamp?.toDate()?.time ?: 0L
+
+                val uid = doc.getString("usuarioId")
+                var nombre = doc.getString("usuarioNombre")
+
+                if (nombre.isNullOrBlank() && uid != null) {
+                    nombre = cacheUsuarios.getOrPut(uid) {
+                        try {
+                            // 1. Intentar local
+                            val userLocal = appDao.obtenerUsuarioPorId(uid)
+                            if (userLocal != null) {
+                                "${userLocal.nombres} ${userLocal.apellidos}".trim()
+                            } else {
+                                // 2. Intentar Firestore
+                                val userDoc = firestore.collection("usuarios").document(uid).get().await()
+                                val n = userDoc.getString("nombres") ?: ""
+                                val a = userDoc.getString("apellidos") ?: ""
+                                "$n $a".trim().ifEmpty { "Trabajador" }
+                            }
+                        } catch (e: Exception) { "Trabajador" }
+                    }
+                }
 
                 val pedido = PedidoEntity(
                     pedidoId = pedidoId,
@@ -296,7 +341,8 @@ class SyncManager(
                     metodoPago = MetodoPago.fromString(doc.getString("metodoPago")),
                     nombreCliente = doc.getString("nombreCliente"),
                     total = doc.getDouble("total") ?: 0.0,
-                    usuarioId = doc.getString("usuarioId"),
+                    usuarioId = uid,
+                    usuarioNombre = nombre,
                     notas = doc.getString("notas"),
                     cajaId = doc.getString("cajaId"),
                     sincronizado = true
@@ -351,6 +397,7 @@ class SyncManager(
                 "nombreCliente" to pedido.nombreCliente,
                 "total" to pedido.total,
                 "usuarioId" to pedido.usuarioId,
+                "usuarioNombre" to pedido.usuarioNombre,
                 "notas" to pedido.notas,
                 "cajaId" to pedido.cajaId,
                 "detalles" to detallesArray,

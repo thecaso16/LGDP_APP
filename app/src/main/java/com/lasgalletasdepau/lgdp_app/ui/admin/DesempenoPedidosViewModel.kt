@@ -149,6 +149,7 @@ class DesempenoPedidosViewModel : ViewModel() {
                             nombreCliente = doc.getString("nombreCliente"),
                             total = doc.getDouble("total") ?: 0.0,
                             usuarioId = doc.getString("usuarioId"),
+                            usuarioNombre = doc.getString("usuarioNombre"),
                             notas = doc.getString("notas"),
                             cajaId = doc.getString("cajaId"),
                             sincronizado = true

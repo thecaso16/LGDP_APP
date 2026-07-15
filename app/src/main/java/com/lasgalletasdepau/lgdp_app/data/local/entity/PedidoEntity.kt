@@ -18,6 +18,7 @@ data class PedidoEntity(
     val nombreCliente: String?,
     val total: Double,
     val usuarioId: String?,
+    val usuarioNombre: String? = null,
     val notas: String? = null,
     val cajaId: String? = null, // ID de la sesión de caja a la que pertenece
     val sincronizado: Boolean
