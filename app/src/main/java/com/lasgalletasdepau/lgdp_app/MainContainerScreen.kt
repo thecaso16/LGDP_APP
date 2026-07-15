@@ -60,7 +60,7 @@ fun MainContainerScreen(
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "${user?.nombres ?: "Usuario"} ${user?.apellidos ?: ""}",
+                                text = if (user != null) "${user?.nombres} ${user?.apellidos}" else "Cerrando sesión...",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
@@ -68,7 +68,7 @@ fun MainContainerScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = user?.rol ?: "Trabajador",
+                                text = user?.rol ?: "",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.7f)
                             )

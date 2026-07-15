@@ -43,13 +43,13 @@ fun AdminContainerScreen(
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.AdminPanelSettings, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(20.dp))
                             }
                         }
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
-                                text = "${user?.nombres ?: "Administrador"} ${user?.apellidos ?: ""}",
+                                text = if (user != null) "${user?.nombres} ${user?.apellidos}" else "Cerrando sesión...",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
@@ -57,7 +57,7 @@ fun AdminContainerScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Panel Administrativo",
+                                text = user?.rol ?: "",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color.White.copy(alpha = 0.7f)
                             )

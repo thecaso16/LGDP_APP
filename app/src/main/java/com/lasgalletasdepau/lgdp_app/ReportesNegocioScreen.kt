@@ -1,8 +1,8 @@
 package com.lasgalletasdepau.lgdp_app
 
 import android.content.Intent
-import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
+import com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -96,126 +96,42 @@ fun ReportesNegocioScreen(
     }
 
     fun exportarReportePDF() {
-        val pdfDocument = PdfDocument()
-        val paint = Paint()
-        var pageNumber = 1
+        val generator = com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator(context)
+        generator.startNewPage("Reporte Estadístico del Negocio")
         
-        fun createNewPage(): PdfDocument.Page {
-            val pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
-            val page = pdfDocument.startPage(pageInfo)
-            val canvas = page.canvas
-            
-            paint.textSize = 16f
-            paint.isFakeBoldText = true
-            paint.textAlign = Paint.Align.CENTER
-            canvas.drawText("LAS GALLETAS DE PAU - REPORTE DE NEGOCIO", 297f, 40f, paint)
-            
-            paint.textSize = 10f
-            paint.isFakeBoldText = false
-            paint.textAlign = Paint.Align.LEFT
-            canvas.drawText("Periodo: ${sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))} al ${sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))}", 50f, 60f, paint)
-            canvas.drawText("Fecha de emisión: ${sdf.format(Date())}", 50f, 75f, paint)
-            
-            paint.textAlign = Paint.Align.RIGHT
-            canvas.drawText("Página $pageNumber", 545f, 820f, paint)
-            paint.textAlign = Paint.Align.LEFT
-            
-            canvas.drawLine(50f, 85f, 545f, 85f, paint)
-            
-            pageNumber++
-            return page
+        generator.addLabeledText("Periodo:", "${sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))} al ${sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))}")
+        generator.addLabeledText("Fecha de emisión:", sdf.format(Date()))
+        generator.addHorizontalLine()
+        
+        generator.addSectionTitle("RESUMEN FINANCIERO")
+        generator.addRow(listOf("Ingresos Totales:", "S/ ${String.format(locale, "%.2f", totalIngresos)}"), listOf(1f, 1f))
+        generator.addRow(listOf("Egresos / Gastos Totales:", "S/ ${String.format(locale, "%.2f", totalEgresos)}"), listOf(1f, 1f))
+        generator.addRow(listOf("Promedio de Ticket:", "S/ ${String.format(locale, "%.2f", promedioTicket)}"), listOf(1f, 1f))
+        generator.addHorizontalLine()
+        
+        generator.addSectionTitle("MOVIMIENTO DE PEDIDOS")
+        generator.addRow(listOf("Pedidos Pagados:", totalPedidos.toString()), listOf(1f, 1f))
+        generator.addRow(listOf("Pedidos Cancelados:", totalCancelados.toString()), listOf(1f, 1f))
+        
+        generator.addSectionTitle("VENTAS POR MÉTODO DE PAGO")
+        ventasPorMetodo.forEach { (metodo, monto) ->
+            generator.addRow(listOf(metodo, "S/ ${String.format(locale, "%.2f", monto)}"), listOf(1f, 1f))
+        }
+        
+        generator.addHorizontalLine()
+        generator.addSectionTitle("PRODUCTOS MÁS VENDIDOS (TOP)")
+        generator.addRow(listOf("Producto", "Cantidad Vendida"), listOf(3f, 1f), isHeader = true)
+        topProductos.forEach { prod ->
+            generator.addRow(listOf(prod.nombre, "${prod.cantidadVendida} und."), listOf(3f, 1f))
         }
 
-        var currentPage = createNewPage()
-        var canvas = currentPage.canvas
-        var y = 110f
-        
-        // --- RESUMEN GENERAL ---
-        paint.textSize = 12f
-        paint.isFakeBoldText = true
-        canvas.drawText("RESUMEN GENERAL", 50f, y, paint)
-        y += 20f
-        
-        paint.isFakeBoldText = false
-        paint.textSize = 10f
-        val resumen = listOf(
-            "Ingresos Totales: S/ ${String.format(locale, "%.2f", totalIngresos)}",
-            "Pedidos Pagados: $totalPedidos",
-            "Pedidos Cancelados: $totalCancelados",
-            "Egresos / Gastos Totales: S/ ${String.format(locale, "%.2f", totalEgresos)}",
-            "Promedio de Ticket: S/ ${String.format(locale, "%.2f", promedioTicket)}"
-        )
-        
-        resumen.forEach { text ->
-            canvas.drawText("- $text", 60f, y, paint)
-            y += 15f
-        }
-        
-        y += 15f
-        
-        // --- VENTAS POR MÉTODO ---
-        paint.textSize = 12f
-        paint.isFakeBoldText = true
-        canvas.drawText("VENTAS POR MÉTODO DE PAGO", 50f, y, paint)
-        y += 20f
-        
-        paint.isFakeBoldText = false
-        paint.textSize = 10f
-        ventasPorMetodo.forEach { (metodo, monto) ->
-            canvas.drawText("- $metodo: S/ ${String.format(locale, "%.2f", monto)}", 60f, y, paint)
-            y += 15f
-        }
-        
-        y += 20f
-        
-        // --- TOP PRODUCTOS ---
-        paint.textSize = 12f
-        paint.isFakeBoldText = true
-        canvas.drawText("PRODUCTOS MÁS VENDIDOS", 50f, y, paint)
-        y += 20f
-        
-        paint.isFakeBoldText = false
-        paint.textSize = 10f
-        topProductos.forEach { prod ->
-            if (y > 780f) {
-                pdfDocument.finishPage(currentPage)
-                currentPage = createNewPage()
-                canvas = currentPage.canvas
-                y = 110f
-            }
-            canvas.drawText("- ${prod.nombre}: ${prod.cantidadVendida} unidades", 60f, y, paint)
-            y += 15f
-        }
-        
-        y += 20f
-        
-        // --- BOTTOM PRODUCTOS ---
-        if (y > 750f) {
-            pdfDocument.finishPage(currentPage)
-            currentPage = createNewPage()
-            canvas = currentPage.canvas
-            y = 110f
-        }
-        
-        paint.textSize = 12f
-        paint.isFakeBoldText = true
-        canvas.drawText("PRODUCTOS MENOS VENDIDOS", 50f, y, paint)
-        y += 20f
-        
-        paint.isFakeBoldText = false
-        paint.textSize = 10f
+        generator.addSectionTitle("PRODUCTOS MENOS VENDIDOS")
+        generator.addRow(listOf("Producto", "Cantidad Vendida"), listOf(3f, 1f), isHeader = true)
         bottomProductos.forEach { prod ->
-            if (y > 780f) {
-                pdfDocument.finishPage(currentPage)
-                currentPage = createNewPage()
-                canvas = currentPage.canvas
-                y = 110f
-            }
-            canvas.drawText("- ${prod.nombre}: ${prod.cantidadVendida} unidades", 60f, y, paint)
-            y += 15f
+            generator.addRow(listOf(prod.nombre, "${prod.cantidadVendida} und."), listOf(3f, 1f))
         }
-        
-        pdfDocument.finishPage(currentPage)
+
+        val pdfDocument = generator.finish()
         val file = File(context.cacheDir, "Reporte_Negocio_Completo.pdf")
         try {
             pdfDocument.writeTo(FileOutputStream(file))
@@ -232,31 +148,40 @@ fun ReportesNegocioScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Reportes del Negocio", fontWeight = FontWeight.ExtraBold, color = Color.White) },
-                actions = {
-                    IconButton(onClick = { exportarReportePDF() }) {
-                        Icon(Icons.Default.PictureAsPdf, "Exportar PDF", tint = Color.White)
-                    }
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
-            )
-        }
-    ) { innerPadding ->
+    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF8FAFC)),
-            contentPadding = PaddingValues(16.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Reportes del Negocio",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF1E233D)
+                        )
+                        Text(
+                            text = "Estadísticas y balance general:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color(0xFF64748B)
+                        )
+                    }
+                    
+                    IconButton(
+                        onClick = { exportarReportePDF() },
+                        modifier = Modifier.background(Color(0xFF10B981).copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                    ) {
+                        Icon(Icons.Default.PictureAsPdf, "Exportar PDF", tint = Color(0xFF10B981))
+                    }
+                }
+
                 if (isLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF1E233D))
                 
                 error?.let {

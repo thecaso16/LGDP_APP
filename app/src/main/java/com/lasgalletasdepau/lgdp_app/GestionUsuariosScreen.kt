@@ -48,6 +48,8 @@ fun GestionUsuariosScreen(
     var usuarioSeleccionado by remember { mutableStateOf<Usuario?>(null) }
     var editNombres by remember { mutableStateOf("") }
     var editApellidos by remember { mutableStateOf("") }
+    var editDni by remember { mutableStateOf("") }
+    var editEmail by remember { mutableStateOf("") }
     var editActivo by remember { mutableStateOf(true) }
     var editRoles by remember { mutableStateOf(setOf<String>()) }
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
@@ -61,145 +63,150 @@ fun GestionUsuariosScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
-                containerColor = Color(0xFF1E233D),
-                contentColor = Color.White
-            ) {
-                Icon(if (mostrarFormularioCrear) Icons.Default.Close else Icons.Default.Add, contentDescription = null)
-            }
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize().padding(innerPadding).background(Color(0xFFF8FAFC))) {
-            if (isLoading && usuarios.isEmpty()) CircularProgressIndicator(Modifier.align(Alignment.Center))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp), 
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp)
-            ) {
-                item {
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(), 
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 100.dp)
+        ) {
+            item {
+                if (isLoading && usuarios.isEmpty()) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), color = Color(0xFF1E233D))
+                }
+                
+                Column {
                     Text(
                         text = "Gestión de Personal",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
                         color = Color(0xFF1E233D)
                     )
-                    Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Administre los accesos y perfiles del equipo:",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF64748B)
                     )
-                    Spacer(Modifier.height(12.dp))
                 }
+                Spacer(Modifier.height(8.dp))
+            }
 
-                item {
-                    AnimatedVisibility(visible = mostrarFormularioCrear) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(4.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Text("Registrar Trabajador", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                OutlinedTextField(value = nuevoNombres, onValueChange = { nuevoNombres = it }, label = { Text("Nombres") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                                OutlinedTextField(value = nuevoApellidos, onValueChange = { nuevoApellidos = it }, label = { Text("Apellidos") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                                OutlinedTextField(value = nuevoDni, onValueChange = { if (it.length <= 8) nuevoDni = it.filter { c -> c.isDigit() } }, label = { Text("DNI") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                                OutlinedTextField(value = nuevoEmail, onValueChange = { nuevoEmail = it }, label = { Text("Correo electrónico") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                                
-                                OutlinedTextField(
-                                    value = nuevaContrasena, 
-                                    onValueChange = { nuevaContrasena = it }, 
-                                    label = { Text("Contraseña (mín. 6 caract.)") }, 
-                                    visualTransformation = PasswordVisualTransformation(),
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(12.dp)
-                                )
+            item {
+                AnimatedVisibility(visible = mostrarFormularioCrear) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(4.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Registrar Trabajador", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            OutlinedTextField(value = nuevoNombres, onValueChange = { nuevoNombres = it }, label = { Text("Nombres") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                            OutlinedTextField(value = nuevoApellidos, onValueChange = { nuevoApellidos = it }, label = { Text("Apellidos") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                            OutlinedTextField(value = nuevoDni, onValueChange = { if (it.length <= 8) nuevoDni = it.filter { c -> c.isDigit() } }, label = { Text("DNI") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                            OutlinedTextField(value = nuevoEmail, onValueChange = { nuevoEmail = it }, label = { Text("Correo electrónico") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                            
+                            OutlinedTextField(
+                                value = nuevaContrasena, 
+                                onValueChange = { nuevaContrasena = it }, 
+                                label = { Text("Contraseña (mín. 6 caract.)") }, 
+                                visualTransformation = PasswordVisualTransformation(),
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
 
-                                Text("Asignar roles:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.Gray)
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    listOf("Trabajador", "Cajero", "Administrador").forEach { rol ->
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(
-                                                checked = rolesSeleccionados.contains(rol),
-                                                onCheckedChange = { isChecked ->
-                                                    rolesSeleccionados = if (isChecked) rolesSeleccionados + rol else rolesSeleccionados - rol
-                                                }
-                                            )
-                                            Text(rol, style = MaterialTheme.typography.bodySmall)
-                                        }
+                            Text("Asignar roles:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.Gray)
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                listOf("Trabajador", "Cajero", "Administrador").forEach { rol ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = rolesSeleccionados.contains(rol),
+                                            onCheckedChange = { isChecked ->
+                                                rolesSeleccionados = if (isChecked) rolesSeleccionados + rol else rolesSeleccionados - rol
+                                            }
+                                        )
+                                        Text(rol, style = MaterialTheme.typography.bodySmall)
                                     }
                                 }
+                            }
 
-                                Button(
-                                    onClick = {
-                                        val u = Usuario(nombres = nuevoNombres, apellidos = nuevoApellidos, dni = nuevoDni, email = nuevoEmail)
-                                        viewModel.crearNuevoUsuarioConAuth(u, nuevaContrasena, rolesSeleccionados.toList()) { if (it) { 
-                                            nuevoNombres = ""; nuevoApellidos = ""; nuevoDni = ""; nuevoEmail = ""; nuevaContrasena = ""; mostrarFormularioCrear = false 
-                                        } }
-                                    },
-                                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
-                                    enabled = nuevoNombres.isNotBlank() && nuevoEmail.contains("@") && nuevaContrasena.length >= 6 && rolesSeleccionados.isNotEmpty(),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) { 
-                                    if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                                    else Text("Registrar Trabajador") 
-                                }
-                            }
-                        }
-                    }
-                }
-
-                items(usuarios) { usuario ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clickable {
-                            usuarioSeleccionado = usuario
-                            editNombres = usuario.nombres
-                            editApellidos = usuario.apellidos
-                            editActivo = usuario.activo
-                            editRoles = usuario.rol.split(Regex("[,/]")).filter { it.isNotBlank() }.toSet()
-                        },
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(1.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                color = Color(0xFF1E233D).copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.size(44.dp)
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1E233D))
-                                }
-                            }
-                            Spacer(Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("${usuario.nombres} ${usuario.apellidos}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                Text("Roles: ${usuario.rol}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                            }
-                            Surface(
-                                color = if (usuario.activo) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = if (usuario.activo) "Activo" else "Inactivo",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (usuario.activo) Color(0xFF2E7D32) else Color.Red,
-                                    fontWeight = FontWeight.Bold
-                                )
+                            Button(
+                                onClick = {
+                                    val u = Usuario(nombres = nuevoNombres, apellidos = nuevoApellidos, dni = nuevoDni, email = nuevoEmail)
+                                    viewModel.crearNuevoUsuarioConAuth(u, nuevaContrasena, rolesSeleccionados.toList()) { if (it) { 
+                                        nuevoNombres = ""; nuevoApellidos = ""; nuevoDni = ""; nuevoEmail = ""; nuevaContrasena = ""; mostrarFormularioCrear = false 
+                                    } }
+                                },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                                enabled = nuevoNombres.isNotBlank() && nuevoEmail.contains("@") && nuevaContrasena.length >= 6 && rolesSeleccionados.isNotEmpty(),
+                                shape = RoundedCornerShape(12.dp)
+                            ) { 
+                                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                                else Text("Registrar Trabajador") 
                             }
                         }
                     }
                 }
             }
+
+            items(usuarios) { usuario ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable {
+                        usuarioSeleccionado = usuario
+                        editNombres = usuario.nombres
+                        editApellidos = usuario.apellidos
+                        editDni = usuario.dni
+                        editEmail = usuario.email
+                        editActivo = usuario.activo
+                        editRoles = usuario.rol.split(Regex("[,/]")).filter { it.isNotBlank() }.toSet()
+                    },
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            color = Color(0xFF1E233D).copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1E233D))
+                            }
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("${usuario.nombres} ${usuario.apellidos}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text("Roles: ${usuario.rol}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        }
+                        Surface(
+                            color = if (usuario.activo) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = if (usuario.activo) "Activo" else "Inactivo",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = if (usuario.activo) Color(0xFF2E7D32) else Color.Red,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
         }
+
+        FloatingActionButton(
+            onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
+            containerColor = Color(0xFF1E233D),
+            contentColor = Color.White,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(if (mostrarFormularioCrear) Icons.Default.Close else Icons.Default.Add, contentDescription = null)
+        }
+
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 
     if (usuarioSeleccionado != null) {
@@ -230,6 +237,21 @@ fun GestionUsuariosScreen(
                             value = editApellidos, 
                             onValueChange = { editApellidos = it }, 
                             label = { Text("Apellidos") }, 
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        OutlinedTextField(
+                            value = editDni, 
+                            onValueChange = { if (it.length <= 8) editDni = it.filter { c -> c.isDigit() } }, 
+                            label = { Text("DNI") }, 
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        OutlinedTextField(
+                            value = editEmail, 
+                            onValueChange = { editEmail = it }, 
+                            label = { Text("Correo electrónico") }, 
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         )
@@ -307,7 +329,13 @@ fun GestionUsuariosScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val editado = usuarioSeleccionado!!.copy(nombres = editNombres, apellidos = editApellidos, activo = editActivo)
+                        val editado = usuarioSeleccionado!!.copy(
+                            nombres = editNombres, 
+                            apellidos = editApellidos, 
+                            dni = editDni,
+                            email = editEmail,
+                            activo = editActivo
+                        )
                         viewModel.actualizarUsuarioFirestore(editado, editRoles.toList()) { if (it) usuarioSeleccionado = null }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),

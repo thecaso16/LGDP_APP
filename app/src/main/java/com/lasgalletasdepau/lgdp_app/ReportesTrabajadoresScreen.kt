@@ -1,8 +1,8 @@
 package com.lasgalletasdepau.lgdp_app
 
 import android.content.Intent
-import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
+import com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -90,90 +90,40 @@ fun ReportesTrabajadoresScreen(
     }
 
     fun exportarHistorialPDF() {
-        val pdfDocument = PdfDocument()
-        val paint = Paint()
-        var pageNumber = 1
+        val generator = com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator(context)
+        generator.startNewPage("Historial de Ventas")
         
-        fun createNewPage(): PdfDocument.Page {
-            val pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
-            val page = pdfDocument.startPage(pageInfo)
-            val canvas = page.canvas
-            
-            paint.textSize = 16f
-            paint.isFakeBoldText = true
-            paint.textAlign = Paint.Align.CENTER
-            canvas.drawText("LAS GALLETAS DE PAU - HISTORIAL DE VENTAS", 297f, 40f, paint)
-            
-            paint.textSize = 10f
-            paint.isFakeBoldText = false
-            paint.textAlign = Paint.Align.LEFT
-            canvas.drawText("Trabajador: ${usuario?.nombres} ${usuario?.apellidos}", 50f, 60f, paint)
-            canvas.drawText("Periodo: ${sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))} al ${sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))}", 50f, 75f, paint)
-            
-            paint.textAlign = Paint.Align.RIGHT
-            canvas.drawText("Página $pageNumber", 545f, 820f, paint)
-            paint.textAlign = Paint.Align.LEFT
-            
-            canvas.drawLine(50f, 85f, 545f, 85f, paint)
-            
-            pageNumber++
-            return page
-        }
+        generator.addLabeledText("Trabajador:", "${usuario?.nombres} ${usuario?.apellidos}")
+        generator.addLabeledText("Periodo:", "${sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis)))} al ${sdf.format(Date(getCorrectedMillis(datePickerStateEnd.selectedDateMillis)))}")
+        generator.addHorizontalLine()
 
-        var currentPage = createNewPage()
-        var canvas = currentPage.canvas
-        var y = 105f
-        
+        generator.addRow(listOf("Nº Orden", "Fecha/Hora", "Cliente", "Mesa", "Total"), listOf(1.5f, 2.5f, 2f, 1.5f, 1.5f), isHeader = true)
+        generator.addHorizontalLine()
+
         historial.forEach { item ->
             val p = item.pedido
-            val fechaStr = if (p.fecha != null) sdf.format(Date(p.fecha)) else ""
-            val horaStr = if (p.fecha != null) timeSdf.format(Date(p.fecha)) else ""
+            val fechaStr = if (p.fecha != null) sdf.format(Date(p.fecha)) else "-"
+            val horaStr = if (p.fecha != null) timeSdf.format(Date(p.fecha)) else "-"
             
-            val orderHeight = 45f + (item.detalles.size * 15f) + 30f
-            
-            if (y + orderHeight > 780f) {
-                pdfDocument.finishPage(currentPage)
-                currentPage = createNewPage()
-                canvas = currentPage.canvas
-                y = 105f
-            }
-            
-            paint.textSize = 11f
-            paint.isFakeBoldText = true
-            canvas.drawText("ORDEN #${p.numeroPedido} - $fechaStr $horaStr", 55f, y, paint)
-            y += 15f
-            
-            paint.isFakeBoldText = false
-            paint.textSize = 9f
-            canvas.drawText("Cliente: ${p.nombreCliente ?: "General"} | Estado: ${p.estado?.valor ?: "-"} | Pago: ${p.metodoPago?.valor ?: "S/D"}", 60f, y, paint)
-            y += 12f
-            
-            paint.textSize = 9f
+            generator.addRow(
+                listOf(
+                    "#${p.numeroPedido}",
+                    "$fechaStr $horaStr",
+                    p.nombreCliente ?: "General",
+                    if (p.mesaId != null) "Mesa ${p.mesaId}" else "Llevar",
+                    "S/ ${String.format(locale, "%.2f", p.total)}"
+                ),
+                listOf(1.5f, 2.5f, 2f, 1.5f, 1.5f)
+            )
+
+            // Detalle de productos en tamaño pequeño
             item.detalles.forEach { d ->
-                canvas.drawText("${d.cantidad}x ${d.nombreProducto}", 70f, y, paint)
-                val subtotalStr = "S/ ${String.format(locale, "%.2f", d.precioUnitario * d.cantidad)}"
-                paint.textAlign = Paint.Align.RIGHT
-                canvas.drawText(subtotalStr, 530f, y, paint)
-                paint.textAlign = Paint.Align.LEFT
-                y += 15f
+                generator.addText("      • ${d.cantidad}x ${d.nombreProducto} (S/ ${String.format(locale, "%.2f", d.precioUnitario)})", fontSize = 8f, color = android.graphics.Color.DKGRAY, spaceAfter = 12f)
             }
-            
-            y += 5f
-            paint.isFakeBoldText = true
-            paint.textSize = 10f
-            canvas.drawText("TOTAL DE LA ORDEN:", 70f, y, paint)
-            paint.textAlign = Paint.Align.RIGHT
-            canvas.drawText("S/ ${String.format(locale, "%.2f", p.total)}", 530f, y, paint)
-            paint.textAlign = Paint.Align.LEFT
-            
-            y += 20f
-            paint.strokeWidth = 0.5f
-            canvas.drawLine(60f, y - 5f, 535f, y - 5f, paint)
-            y += 10f
+            generator.addHorizontalLine()
         }
-        
-        pdfDocument.finishPage(currentPage)
-        
+
+        val pdfDocument = generator.finish()
         val file = File(context.cacheDir, "Historial_Ventas_Propio.pdf")
         try {
             pdfDocument.writeTo(FileOutputStream(file))

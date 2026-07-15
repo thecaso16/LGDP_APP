@@ -1,8 +1,8 @@
 package com.lasgalletasdepau.lgdp_app
 
 import android.content.Intent
-import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
+import com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -45,7 +45,7 @@ fun CuadreCajaScreen(
     val cajaSesion by viewModel.cajaSesion.collectAsState()
     
     val efectivo by viewModel.efectivoSistema.collectAsState()
-    val yape by viewModel.yapeSistema.collectAsState()
+    val billeteraDigital by viewModel.billeteraDigitalSistema.collectAsState()
     val izipay by viewModel.izipaySistema.collectAsState()
 
     val locale = LocalConfiguration.current.locales[0]
@@ -60,7 +60,7 @@ fun CuadreCajaScreen(
     var justificacionDescuadre by remember { mutableStateOf("") }
     var mostrarDialogoJustificacion by remember { mutableStateOf(false) }
     
-    val totalSistema = efectivo + yape + izipay
+    val totalSistema = efectivo + billeteraDigital + izipay
     val esCajero by viewModel.esCajero.collectAsState()
     val estaAbierta = cajaSesion != null
 
@@ -75,84 +75,42 @@ fun CuadreCajaScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     fun exportarCierrePDF() {
-        val pdfDocument = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-        val page = pdfDocument.startPage(pageInfo)
-        val canvas = page.canvas
-        val paint = Paint()
+        val generator = com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator(context)
+        generator.startNewPage("Reporte de Cierre de Caja")
         
-        var y = 50f
-        paint.textSize = 20f
-        paint.isFakeBoldText = true
-        canvas.drawText("REPORTE DE CIERRE DE CAJA", 50f, y, paint)
+        generator.addLabeledText("Fecha:", dateFormat.format(Date()))
+        generator.addLabeledText("Cajero:", cajaSesion?.nombreCajero ?: "N/A")
+        generator.addLabeledText("Apertura:", if(estaAbierta) timeFormat.format(Date(cajaSesion!!.fechaApertura)) else "N/A")
+        generator.addHorizontalLine()
         
-        y += 40f
-        paint.textSize = 12f
-        paint.isFakeBoldText = false
-        canvas.drawText("Fecha: ${dateFormat.format(Date())}", 50f, y, paint)
-        y += 15f
-        canvas.drawText("Cajero: ${cajaSesion?.nombreCajero ?: "N/A"}", 50f, y, paint)
-        y += 15f
-        canvas.drawText("Apertura: ${if(estaAbierta) timeFormat.format(Date(cajaSesion!!.fechaApertura)) else "N/A"}", 50f, y, paint)
-        
-        y += 40f
-        paint.isFakeBoldText = true
-        canvas.drawText("RESUMEN DE MOVIMIENTOS", 50f, y, paint)
-        y += 25f
-        paint.isFakeBoldText = false
-        canvas.drawText("Monto de Apertura:", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", montoAperturaVal)}", 400f, y, paint)
-        y += 20f
-        canvas.drawText("Ingresos Efectivo:", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", efectivo)}", 400f, y, paint)
-        y += 20f
-        canvas.drawText("Ingresos Billetera Digital:", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", yape)}", 400f, y, paint)
-        y += 20f
-        canvas.drawText("Ingresos Izipay:", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", izipay)}", 400f, y, paint)
-        y += 20f
-        canvas.drawText("Egresos / Gastos:", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", egresosDouble)}", 400f, y, paint)
+        generator.addSectionTitle("Resumen de Movimientos")
+        generator.addRow(listOf("Monto de Apertura:", "S/ ${String.format(locale, "%.2f", montoAperturaVal)}"), listOf(1f, 1f))
+        generator.addRow(listOf("Ingresos Efectivo:", "S/ ${String.format(locale, "%.2f", efectivo)}"), listOf(1f, 1f))
+        generator.addRow(listOf("Ingresos Billetera Digital:", "S/ ${String.format(locale, "%.2f", billeteraDigital)}"), listOf(1f, 1f))
+        generator.addRow(listOf("Ingresos Izipay:", "S/ ${String.format(locale, "%.2f", izipay)}"), listOf(1f, 1f))
+        generator.addRow(listOf("Egresos / Gastos:", "S/ ${String.format(locale, "%.2f", egresosDouble)}"), listOf(1f, 1f))
         
         if (justificacionEgresos.isNotBlank()) {
-            y += 20f
-            canvas.drawText("Justificación Egresos:", 60f, y, paint)
-            y += 15f
-            paint.textSize = 10f
-            canvas.drawText(justificacionEgresos, 70f, y, paint)
-            paint.textSize = 12f
-            y += 10f
+            generator.addLabeledText("Justificación Egresos:", justificacionEgresos)
         }
         
-        y += 30f
-        paint.isFakeBoldText = true
-        canvas.drawText("TOTAL REGISTRADO EN SISTEMA:", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", totalSistema)}", 400f, y, paint)
+        generator.addHorizontalLine()
+        generator.addRow(listOf("TOTAL REGISTRADO EN SISTEMA:", "S/ ${String.format(locale, "%.2f", totalSistema)}"), listOf(1f, 1f), isHeader = true)
         
-        y += 40f
-        canvas.drawText("VERIFICACIÓN FÍSICA", 50f, y, paint)
-        y += 25f
-        paint.isFakeBoldText = false
-        canvas.drawText("Efectivo Esperado (Físico):", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", esperadoFisico)}", 400f, y, paint)
-        y += 20f
-        canvas.drawText("Efectivo Real Contado:", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", montoRealDouble)}", 400f, y, paint)
-        y += 25f
-        paint.isFakeBoldText = true
-        canvas.drawText("DIFERENCIA:", 60f, y, paint)
-        canvas.drawText("S/ ${String.format(locale, "%.2f", diferencia)}", 400f, y, paint)
+        generator.addSectionTitle("Verificación Física")
+        generator.addRow(listOf("Efectivo Esperado (Físico):", "S/ ${String.format(locale, "%.2f", esperadoFisico)}"), listOf(1f, 1f))
+        generator.addRow(listOf("Efectivo Real Contado:", "S/ ${String.format(locale, "%.2f", montoRealDouble)}"), listOf(1f, 1f))
+        generator.addHorizontalLine()
+        
+        val colorDiferencia = if (abs(diferencia) < 0.01) android.graphics.Color.rgb(16, 185, 129) else android.graphics.Color.RED
+        generator.addText("DIFERENCIA: S/ ${String.format(locale, "%.2f", diferencia)}", isBold = true, fontSize = 12f, color = colorDiferencia)
         
         if (justificacionDescuadre.isNotBlank()) {
-            y += 40f
-            canvas.drawText("JUSTIFICACIÓN:", 50f, y, paint)
-            y += 20f
-            paint.isFakeBoldText = false
-            canvas.drawText(justificacionDescuadre, 60f, y, paint)
+            generator.addSectionTitle("Justificación de Descuadre")
+            generator.addText(justificacionDescuadre)
         }
         
-        pdfDocument.finishPage(page)
+        val pdfDocument = generator.finish()
         val file = File(context.cacheDir, "Cierre_Caja_Actual.pdf")
         try {
             pdfDocument.writeTo(FileOutputStream(file))
@@ -289,7 +247,7 @@ fun CuadreCajaScreen(
                     Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             FilaResumenCaja("Ventas en Efectivo", efectivo, locale)
-                            FilaResumenCaja("Ventas Billetera Digital", yape, locale)
+                            FilaResumenCaja("Ventas Billetera Digital", billeteraDigital, locale)
                             FilaResumenCaja("Ventas Izipay", izipay, locale)
                             HorizontalDivider(color = Color(0xFFF1F5F9))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

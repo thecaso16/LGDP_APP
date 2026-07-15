@@ -65,9 +65,7 @@ class DesempenoPedidosViewModel : ViewModel() {
                 for (doc in snapshot.documents) {
                     if (doc.getString("estado") != "PAGADO") continue
 
-                    val uid = doc.getString("usuarioId")
-                    if (uid == null) continue
-                    
+                    val uid = doc.getString("usuarioId") ?: "desconocido"
                     val total = doc.getDouble("total") ?: 0.0
                     totalGlobal += total
                         
@@ -78,15 +76,19 @@ class DesempenoPedidosViewModel : ViewModel() {
                 val listaResult = mutableListOf<TrabajadorEstadistica>()
                 for ((uid, stats) in mapaTrabajadores) {
                     var nombre = "ID: ${uid.takeLast(6)}"
-                    try {
-                        val userDoc = firestore.collection("usuarios").document(uid).get().await()
-                        if (userDoc.exists()) {
-                            val nombres = userDoc.getString("nombres") ?: ""
-                            val apellidos = userDoc.getString("apellidos") ?: ""
-                            nombre = "$nombres $apellidos".trim().ifEmpty { nombre }
+                    if (uid != "desconocido") {
+                        try {
+                            val userDoc = firestore.collection("usuarios").document(uid).get().await()
+                            if (userDoc.exists()) {
+                                val nombres = userDoc.getString("nombres") ?: ""
+                                val apellidos = userDoc.getString("apellidos") ?: ""
+                                nombre = "$nombres $apellidos".trim().ifEmpty { nombre }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DesempenoPedidosVM", "Error al cargar usuario $uid")
                         }
-                    } catch (e: Exception) {
-                        Log.e("DesempenoPedidosVM", "Error al cargar usuario $uid")
+                    } else {
+                        nombre = "Usuario no identificado"
                     }
                     
                     listaResult.add(TrabajadorEstadistica(
@@ -106,6 +108,10 @@ class DesempenoPedidosViewModel : ViewModel() {
         }
     }
 
+    /**
+     * Carga los pedidos específicos de un trabajador filtrando en memoria
+     * para evitar errores de Índices Compuestos en Firestore.
+     */
     fun cargarPedidosTrabajador(usuarioId: String, inicioMillis: Long, finMillis: Long) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -119,44 +125,49 @@ class DesempenoPedidosViewModel : ViewModel() {
                     set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
                 }
 
+                // Usamos solo el filtro de fecha que ya está indexado
                 val snapshot = firestore.collection("pedidos")
-                    .whereEqualTo("usuarioId", usuarioId)
                     .whereGreaterThanOrEqualTo("fecha", Timestamp(calInicio.time))
                     .whereLessThanOrEqualTo("fecha", Timestamp(calFin.time))
                     .get().await()
 
-                val lista = snapshot.documents.mapNotNull { doc ->
-                    val firebaseFecha = doc.getTimestamp("fecha")?.toDate()?.time ?: 0L
-                    val pedido = PedidoEntity(
-                        pedidoId = doc.id,
-                        numeroPedido = doc.getLong("numeroPedido")?.toInt() ?: 0,
-                        fecha = firebaseFecha,
-                        estado = doc.getString("estado")?.let { try { EstadoPedido.valueOf(it) } catch(e: Exception) { null } },
-                        tipoPedido = doc.getString("tipoPedido")?.let { try { TipoPedido.valueOf(it) } catch(e: Exception) { TipoPedido.PARA_LLEVAR } } ?: TipoPedido.PARA_LLEVAR,
-                        mesaId = doc.getLong("mesaId")?.toInt(),
-                        metodoPago = doc.getString("metodoPago")?.let { try { MetodoPago.valueOf(it) } catch(e: Exception) { null } },
-                        nombreCliente = doc.getString("nombreCliente"),
-                        total = doc.getDouble("total") ?: 0.0,
-                        usuarioId = doc.getString("usuarioId"),
-                        notas = doc.getString("notas"),
-                        cajaId = doc.getString("cajaId"),
-                        sincronizado = true
-                    )
-                    
-                    val detallesNube = doc.get("detalles") as? List<Map<String, Any>>
-                    val detallesEntities = detallesNube?.map { map ->
-                        PedidoDetalleEntity(
+                // Filtramos por usuario y estado PAGADO en la aplicación
+                val lista = snapshot.documents
+                    .filter { it.getString("usuarioId") == usuarioId }
+                    .mapNotNull { doc ->
+                        val firebaseTimestamp = doc.getTimestamp("fecha")
+                        val firebaseFecha = firebaseTimestamp?.toDate()?.time ?: 0L
+                        
+                        val pedido = PedidoEntity(
                             pedidoId = doc.id,
-                            productoId = map["productoId"] as? String,
-                            nombreProducto = map["nombreProducto"] as? String,
-                            cantidad = (map["cantidad"] as? Long)?.toInt() ?: 0,
-                            precioUnitario = (map["precioUnitario"] as? Number)?.toDouble() ?: 0.0,
-                            comentario = null
+                            numeroPedido = doc.getLong("numeroPedido")?.toInt() ?: 0,
+                            fecha = firebaseFecha,
+                            estado = doc.getString("estado")?.let { try { EstadoPedido.valueOf(it) } catch(e: Exception) { null } },
+                            tipoPedido = doc.getString("tipoPedido")?.let { try { TipoPedido.valueOf(it) } catch(e: Exception) { TipoPedido.PARA_LLEVAR } } ?: TipoPedido.PARA_LLEVAR,
+                            mesaId = doc.getLong("mesaId")?.toInt(),
+                            metodoPago = MetodoPago.fromString(doc.getString("metodoPago")),
+                            nombreCliente = doc.getString("nombreCliente"),
+                            total = doc.getDouble("total") ?: 0.0,
+                            usuarioId = doc.getString("usuarioId"),
+                            notas = doc.getString("notas"),
+                            cajaId = doc.getString("cajaId"),
+                            sincronizado = true
                         )
-                    } ?: emptyList()
-                    
-                    PedidoConDetalles(pedido, detallesEntities)
-                }.sortedByDescending { it.pedido.fecha }
+                        
+                        val detallesNube = doc.get("detalles") as? List<Map<String, Any>>
+                        val detallesEntities = detallesNube?.map { map ->
+                            PedidoDetalleEntity(
+                                pedidoId = doc.id,
+                                productoId = map["productoId"] as? String,
+                                nombreProducto = map["nombreProducto"] as? String,
+                                cantidad = (map["cantidad"] as? Long)?.toInt() ?: 0,
+                                precioUnitario = (map["precioUnitario"] as? Number)?.toDouble() ?: 0.0,
+                                comentario = null
+                            )
+                        } ?: emptyList()
+                        
+                        PedidoConDetalles(pedido, detallesEntities)
+                    }.sortedByDescending { it.pedido.fecha }
                 
                 _pedidosTrabajadorSeleccionado.value = lista
             } catch (e: Exception) {

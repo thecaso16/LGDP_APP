@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -65,7 +66,13 @@ class ReportesNegocioViewModel : ViewModel() {
                     set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
                 }
 
-                // Obtener pedidos en el rango
+                // 1. Obtener todos los productos del catálogo para identificar los no vendidos
+                val snapshotCatalogo = firestore.collection("productos").get().await()
+                val todosLosProductos = snapshotCatalogo.documents.associate { 
+                    it.id to (it.getString("nombre") ?: "Desconocido")
+                }
+
+                // 2. Obtener pedidos en el rango
                 val snapshotPedidos = firestore.collection("pedidos")
                     .whereGreaterThanOrEqualTo("fecha", Timestamp(calInicio.time))
                     .whereLessThanOrEqualTo("fecha", Timestamp(calFin.time))
@@ -77,6 +84,11 @@ class ReportesNegocioViewModel : ViewModel() {
                 val conteoProductos = mutableMapOf<String, Int>()
                 val metodosMap = mutableMapOf<String, Double>()
 
+                // Inicializar conteo con 0 para todos los productos del catálogo
+                todosLosProductos.values.forEach { nombre ->
+                    conteoProductos[nombre] = 0
+                }
+
                 for (doc in snapshotPedidos.documents) {
                     val estado = doc.getString("estado")
                     if (estado == "PAGADO") {
@@ -84,8 +96,10 @@ class ReportesNegocioViewModel : ViewModel() {
                         ingresos += total
                         pedidosCont++
 
-                        val metodo = doc.getString("metodoPago") ?: "EFECTIVO"
-                        metodosMap[metodo] = (metodosMap[metodo] ?: 0.0) + total
+                        val metodoRaw = doc.getString("metodoPago") ?: "EFECTIVO"
+                        val metodoEnum = MetodoPago.fromString(metodoRaw)
+                        val metodoNombre = metodoEnum?.valor ?: metodoRaw
+                        metodosMap[metodoNombre] = (metodosMap[metodoNombre] ?: 0.0) + total
                             
                         val detalles = doc.get("detalles") as? List<Map<String, Any>>
                         detalles?.forEach { det ->
@@ -98,7 +112,7 @@ class ReportesNegocioViewModel : ViewModel() {
                     }
                 }
 
-                // Obtener cierres de caja en el rango para sumar egresos
+                // 3. Obtener cierres de caja para egresos
                 val snapshotCierres = firestore.collection("cierres_caja")
                     .whereGreaterThanOrEqualTo("fechaCierre", Timestamp(calInicio.time))
                     .whereLessThanOrEqualTo("fechaCierre", Timestamp(calFin.time))
@@ -117,12 +131,19 @@ class ReportesNegocioViewModel : ViewModel() {
                 _ventasPorMetodo.value = metodosMap
 
                 val maxUnidades = conteoProductos.values.maxOrNull() ?: 1
-                val sortedProducts = conteoProductos.entries
+                val allMappedProducts = conteoProductos.entries
                     .map { ProductoEstadistica(it.key, it.value, it.value.toFloat() / maxUnidades) }
-                    .sortedByDescending { it.cantidadVendida }
 
-                _topProductos.value = sortedProducts.take(10)
-                _bottomProductos.value = sortedProducts.takeLast(10).reversed()
+                // Top 10: Los más vendidos
+                _topProductos.value = allMappedProducts
+                    .filter { it.cantidadVendida > 0 }
+                    .sortedByDescending { it.cantidadVendida }
+                    .take(10)
+
+                // Bottom 10: Los que tienen 0 ventas o las cantidades más bajas
+                _bottomProductos.value = allMappedProducts
+                    .sortedBy { it.cantidadVendida }
+                    .take(10)
 
             } catch (e: Exception) {
                 Log.e("ReportesNegocioVM", "Error: ${e.message}")

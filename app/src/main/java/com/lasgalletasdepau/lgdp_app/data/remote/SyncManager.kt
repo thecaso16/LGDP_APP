@@ -209,9 +209,7 @@ class SyncManager(
                         estado = doc.getString("estado")?.let { try { EstadoPedido.valueOf(it) } catch(e: Exception) { null } },
                         tipoPedido = doc.getString("tipoPedido")?.let { try { TipoPedido.valueOf(it) } catch(e: Exception) { TipoPedido.PARA_LLEVAR } } ?: TipoPedido.PARA_LLEVAR,
                         mesaId = doc.getLong("mesaId")?.toInt(),
-                        metodoPago = doc.getString("metodoPago")?.let {
-                            try { MetodoPago.valueOf(it) } catch(e: Exception) { null }
-                        },
+                        metodoPago = MetodoPago.fromString(doc.getString("metodoPago")),
                         nombreCliente = doc.getString("nombreCliente"),
                         total = doc.getDouble("total") ?: 0.0,
                         usuarioId = doc.getString("usuarioId"),
@@ -295,7 +293,7 @@ class SyncManager(
                     estado = doc.getString("estado")?.let { try { EstadoPedido.valueOf(it) } catch(e: Exception) { null } },
                     tipoPedido = doc.getString("tipoPedido")?.let { try { TipoPedido.valueOf(it) } catch(e: Exception) { TipoPedido.PARA_LLEVAR } } ?: TipoPedido.PARA_LLEVAR,
                     mesaId = doc.getLong("mesaId")?.toInt(),
-                    metodoPago = doc.getString("metodoPago")?.let { try { MetodoPago.valueOf(it) } catch(e: Exception) { null } },
+                    metodoPago = MetodoPago.fromString(doc.getString("metodoPago")),
                     nombreCliente = doc.getString("nombreCliente"),
                     total = doc.getDouble("total") ?: 0.0,
                     usuarioId = doc.getString("usuarioId"),

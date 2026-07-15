@@ -21,7 +21,7 @@ data class CajaDetalleEntity(
     val egresos: Double = 0.0,
     val ingresosEfectivo: Double = 0.0,
     val ingresosIzipay: Double = 0.0,
-    val ingresosYape: Double = 0.0,
+    val ingresosBilleteraDigital: Double = 0.0,
     val totalVentas: Double = 0.0,
     val esperadoFisico: Double = 0.0,
     val montoFisicoReal: Double = 0.0,

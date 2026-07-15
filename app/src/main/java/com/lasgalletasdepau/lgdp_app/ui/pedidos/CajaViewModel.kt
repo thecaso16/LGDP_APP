@@ -46,9 +46,9 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val yapeSistema: StateFlow<Double> = cajaSesion.flatMapLatest { sesion ->
+    val billeteraDigitalSistema: StateFlow<Double> = cajaSesion.flatMapLatest { sesion ->
         if (sesion == null) flowOf(0.0)
-        else appDao.observarIngresosCaja(MetodoPago.YAPE.name, sesion.fechaApertura, System.currentTimeMillis() + 86400000)
+        else appDao.observarIngresosCaja(MetodoPago.BILLETERA_DIGITAL.name, sesion.fechaApertura, System.currentTimeMillis() + 86400000)
             .map { it ?: 0.0 }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
@@ -138,7 +138,7 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
         val user = usuarioLogueado.value ?: return false
         val sesion = cajaSesion.value ?: return false
         
-        val totalVentas = efectivoSistema.value + yapeSistema.value + izipaySistema.value
+        val totalVentas = efectivoSistema.value + billeteraDigitalSistema.value + izipaySistema.value
         val apert = sesion.montoApertura
         val egre = egresos.value.toDoubleOrNull() ?: 0.0
         val justEgre = justificacionEgresos.value
@@ -154,7 +154,7 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
             egresos = egre,
             ingresosEfectivo = efectivoSistema.value,
             ingresosIzipay = izipaySistema.value,
-            ingresosYape = yapeSistema.value,
+            ingresosBilleteraDigital = billeteraDigitalSistema.value,
             totalVentas = totalVentas,
             esperadoFisico = esperadoFisico,
             montoFisicoReal = fisic,
@@ -174,7 +174,7 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
             "fechaCierre" to Timestamp(Date(ahora)),
             "ingresosEfectivo" to efectivoSistema.value,
             "ingresosIzipay" to izipaySistema.value,
-            "ingresosYape" to yapeSistema.value,
+            "ingresosBilleteraDigital" to billeteraDigitalSistema.value,
             "justificacion" to (justificacionDescuadre ?: ""),
             "montoApertura" to apert,
             "montoFisicoReal" to fisic,

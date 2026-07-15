@@ -30,9 +30,7 @@ class AppConverters {
     fun fromMetodoPago(value: MetodoPago?): String? = value?.name
 
     @TypeConverter
-    fun toMetodoPago(value: String?): MetodoPago? = value?.let { 
-        try { MetodoPago.valueOf(it) } catch(e: Exception) { null }
-    }
+    fun toMetodoPago(value: String?): MetodoPago? = MetodoPago.fromString(value)
     
     // Eliminado el converter de RolUsuario para manejarlo como String simple en la entidad
 }

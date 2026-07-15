@@ -167,10 +167,10 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun cerrarSesion() {
+        _loginState.value = LoginState.Idle
         auth.signOut()
         viewModelScope.launch {
             appDao.cerrarSesionLocal()
-            _loginState.value = LoginState.Idle
         }
     }
 

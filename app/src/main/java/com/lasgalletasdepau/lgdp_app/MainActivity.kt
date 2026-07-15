@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.data.remote.SyncManager
 import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
 import com.lasgalletasdepau.lgdp_app.ui.login.LoginScreen
+import com.lasgalletasdepau.lgdp_app.ui.login.LoginState
 import com.lasgalletasdepau.lgdp_app.ui.login.LoginViewModel
 import com.lasgalletasdepau.lgdp_app.ui.theme.LGDP_APPTheme
 import com.lasgalletasdepau.lgdp_app.utils.NetworkMonitor
@@ -41,42 +42,40 @@ class MainActivity : ComponentActivity() {
         setContent {
             LGDP_APPTheme {
                 val viewModel: LoginViewModel = viewModel()
+                val loginState by viewModel.loginState.collectAsState()
+
                 Surface(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    var userRoleString by remember { mutableStateOf<String?>(null) }
-                    var isLoggedIn by remember { mutableStateOf(false) }
+                    when (val state = loginState) {
+                        is LoginState.Success -> {
+                            val userRoleString = state.rol
+                            val roles = RolUsuario.fromStringList(userRoleString)
 
-                    if (!isLoggedIn) {
-                        LoginScreen(
-                            viewModel = viewModel,
-                            onLoginSuccess = { role ->
-                                userRoleString = role
-                                isLoggedIn = true
-                                lifecycleScope.launch {
-                                    syncManager.sincronizarTodo()
-                                }
+                            if (roles.contains(RolUsuario.ADMINISTRADOR)) {
+                                AdminContainerScreen(
+                                    onLogout = {
+                                        viewModel.cerrarSesion()
+                                    }
+                                )
+                            } else {
+                                MainContainerScreen(
+                                    userRole = userRoleString,
+                                    onLogout = {
+                                        viewModel.cerrarSesion()
+                                    }
+                                )
                             }
-                        )
-                    } else {
-                        val roles = RolUsuario.fromStringList(userRoleString)
-                        
-                        if (roles.contains(RolUsuario.ADMINISTRADOR)) {
-                            AdminContainerScreen(
-                                onLogout = {
-                                    viewModel.cerrarSesion()
-                                    isLoggedIn = false
-                                    userRoleString = null
-                                }
-                            )
-                        } else {
-                            MainContainerScreen(
-                                userRole = userRoleString,
-                                onLogout = {
-                                    viewModel.cerrarSesion()
-                                    isLoggedIn = false
-                                    userRoleString = null
-                                }
+
+                            // Sincronizar cuando el login es exitoso
+                            LaunchedEffect(state.rol) {
+                                syncManager.sincronizarTodo()
+                            }
+                        }
+                        else -> {
+                            LoginScreen(
+                                viewModel = viewModel,
+                                onLoginSuccess = { /* Ya no es necesario manejar estado local aquí */ }
                             )
                         }
                     }
