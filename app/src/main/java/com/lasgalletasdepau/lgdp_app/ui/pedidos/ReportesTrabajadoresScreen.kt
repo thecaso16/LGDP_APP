@@ -1,4 +1,4 @@
-package com.lasgalletasdepau.lgdp_app
+package com.lasgalletasdepau.lgdp_app.ui.pedidos
 
 import android.content.Intent
 import android.graphics.pdf.PdfDocument

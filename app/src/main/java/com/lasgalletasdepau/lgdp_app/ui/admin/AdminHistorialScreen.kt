@@ -1,4 +1,4 @@
-package com.tuapp.restaurante.ui.screens
+package com.lasgalletasdepau.lgdp_app.ui.admin
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

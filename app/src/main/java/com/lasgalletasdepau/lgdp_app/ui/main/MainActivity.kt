@@ -1,4 +1,4 @@
-package com.lasgalletasdepau.lgdp_app
+package com.lasgalletasdepau.lgdp_app.ui.main
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
