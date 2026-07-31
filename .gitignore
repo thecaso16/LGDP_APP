@@ -1,0 +1,34 @@
+# Gradle files
+.gradle/
+build/
+
+# Kotlin and Java
+*.class
+*.log
+*.ctxt
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Android specific
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Device specific (e.g., Mac)
+.DS_Store
+
+# User-specific configurations
+*.swp
+*~

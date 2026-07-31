@@ -1,0 +1,7 @@
+- [x] Crear archivo `.gitignore` en la raíz del proyecto
+- [x] Actualizar `app/.gitignore`
+- [x] Ejecutar limpieza de archivos rastreados en Git (`git rm --cached`)
+- [x] Verificar que los archivos temporales ya no estén rastreados
+- [x] Limpiar y actualizar `libs.versions.toml`
+- [x] Eliminar importaciones no utilizadas en `MainContainerScreen.kt`
+- [x] Sincronizar Gradle y verificar compilación

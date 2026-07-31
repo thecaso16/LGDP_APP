@@ -1,6 +1,5 @@
 package com.lasgalletasdepau.lgdp_app.ui.main
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -15,10 +14,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
+import com.lasgalletasdepau.lgdp_app.ui.mesas.DetalleMesaScreen
+import com.lasgalletasdepau.lgdp_app.ui.mesas.SalonScreen
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.CajaViewModel
+import com.lasgalletasdepau.lgdp_app.ui.pedidos.CuadreCajaScreen
+import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoScreen
+import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidosPendientesScreen
+import com.lasgalletasdepau.lgdp_app.ui.pedidos.ReportesTrabajadoresScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
