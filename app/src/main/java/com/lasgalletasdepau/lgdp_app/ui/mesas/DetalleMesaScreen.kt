@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
 import com.lasgalletasdepau.lgdp_app.ui.mesas.DetalleMesaViewModel
+import androidx.compose.foundation.isSystemInDarkTheme
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +56,7 @@ fun DetalleMesaScreen(
     val totalConsumido = pedido?.total ?: 0.0
     val scrollState = rememberScrollState()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -68,13 +69,13 @@ fun DetalleMesaScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onRegresarAlSalon) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Regresar", tint = Color(0xFF1E233D))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Regresar", tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Text(
                     text = "Estado de Cuenta",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1E233D)
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
 
@@ -82,14 +83,14 @@ fun DetalleMesaScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = titulo, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
+                            Text(text = titulo, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                             Surface(
-                                color = if (pedido != null) Color(0xFFE8F5E9) else Color(0xFFFFEBEE), 
+                                color = if (pedido != null) Color(0xFFE8F5E9).copy(alpha = if(isSystemInDarkTheme()) 0.2f else 1f) else Color(0xFFFFEBEE).copy(alpha = if(isSystemInDarkTheme()) 0.2f else 1f), 
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
@@ -97,39 +98,39 @@ fun DetalleMesaScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), 
                                     style = MaterialTheme.typography.labelSmall, 
                                     fontWeight = FontWeight.Bold,
-                                    color = if (pedido != null) Color(0xFF2E7D32) else Color.Red
+                                    color = if (pedido != null) (if(isSystemInDarkTheme()) Color(0xFFA5D6A7) else Color(0xFF2E7D32)) else Color.Red
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Cliente: $nombreCliente", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF334155))
+                        Text(text = "Cliente: $nombreCliente", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
                 if (pedido != null) {
                     Spacer(modifier = Modifier.height(20.dp))
-                    Text(text = "Consumo detallado", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
+                    Text(text = "Consumo detallado", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             detalles.forEach { item ->
                                 Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(text = "${item.cantidad} x ${item.nombreProducto}", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF334155))
-                                    Text(text = String.format("S/. %.2f", item.cantidad * item.precioUnitario), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                    Text(text = "${item.cantidad} x ${item.nombreProducto}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                                    Text(text = String.format("S/. %.2f", item.cantidad * item.precioUnitario), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
-                            HorizontalDivider(Modifier.padding(vertical = 12.dp), color = Color(0xFFF1F5F9))
+                            HorizontalDivider(Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                                Text(text = "TOTAL A PAGAR:", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = Color.Gray)
-                                Text(text = String.format("S/. %.2f", totalConsumido), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
+                                Text(text = "TOTAL A PAGAR:", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(text = String.format("S/. %.2f", totalConsumido), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                             }
                         }
                     }
@@ -139,7 +140,7 @@ fun DetalleMesaScreen(
                             "No se encontró una comanda activa para esta mesa.\nSi la mesa aparece ocupada por error, use el botón de abajo para liberarla.", 
                             textAlign = TextAlign.Center, 
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -192,12 +193,12 @@ fun DetalleMesaScreen(
                         },
                         modifier = Modifier.fillMaxWidth().height(48.dp),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.5.dp, Color(0xFF1E233D)),
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
                         enabled = cajaAbierta != null
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = if (cajaAbierta != null) Color(0xFF1E233D) else Color.Gray)
+                        Icon(Icons.Default.Add, contentDescription = null, tint = if (cajaAbierta != null) MaterialTheme.colorScheme.primary else Color.Gray)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Añadir Productos", color = if (cajaAbierta != null) Color(0xFF1E233D) else Color.Gray, fontWeight = FontWeight.Bold)
+                        Text("Añadir Productos", color = if (cajaAbierta != null) MaterialTheme.colorScheme.primary else Color.Gray, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -217,7 +218,8 @@ fun DetalleMesaScreen(
     if (mostrarMetodosPago) {
         AlertDialog(
             onDismissRequest = { mostrarMetodosPago = false },
-            title = { Text("Seleccione el método de pago", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Seleccione el método de pago", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(top = 8.dp)) {
                     MetodoPago.entries.forEach { metodo ->
@@ -229,7 +231,10 @@ fun DetalleMesaScreen(
                                 }
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF1F5F9), contentColor = Color(0xFF1E233D)),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant, 
+                                contentColor = MaterialTheme.colorScheme.onSurface
+                            ),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(metodo.valor, fontWeight = FontWeight.Bold)
@@ -280,7 +285,7 @@ fun DetalleMesaScreen(
             },
             dismissButton = { 
                 TextButton(onClick = { mostrarConfirmarCancelacion = false }) { 
-                    Text("Cancelar", color = Color.Gray) 
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) 
                 } 
             }
         )

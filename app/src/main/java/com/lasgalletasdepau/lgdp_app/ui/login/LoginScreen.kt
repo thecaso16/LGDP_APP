@@ -3,6 +3,7 @@ package com.lasgalletasdepau.lgdp_app.ui.login
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -72,7 +73,7 @@ fun LoginScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF1E233D))
+                    .background(MaterialTheme.colorScheme.primary)
             )
 
             // 2. IMAGEN DE FONDO
@@ -87,14 +88,14 @@ fun LoginScreen(
                 )
             )
 
-            // 3. TARJETA BLANCA FLOTANTE
+            // 3. TARJETA FLOTANTE
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
                     .align(Alignment.Center),
                 shape = RoundedCornerShape(32.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = if(isSystemInDarkTheme()) MaterialTheme.colorScheme.surface.copy(alpha = 0.95f) else Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
                 Column(
@@ -107,7 +108,7 @@ fun LoginScreen(
                         text = "BIENVENIDO",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1A1A1A)
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -115,7 +116,7 @@ fun LoginScreen(
                     Text(
                         text = "Inicia sesión en Las Galletas de Pau",
                         fontSize = 14.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(28.dp))
@@ -134,9 +135,11 @@ fun LoginScreen(
                         enabled = loginState !is LoginState.Loading,
                         isError = loginState is LoginState.Error,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1E233D),
-                            unfocusedBorderColor = Color.LightGray,
-                            errorBorderColor = Color.Red
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
 
@@ -157,9 +160,11 @@ fun LoginScreen(
                         enabled = loginState !is LoginState.Loading,
                         isError = loginState is LoginState.Error,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF1E233D),
-                            unfocusedBorderColor = Color.LightGray,
-                            errorBorderColor = Color.Red
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            cursorColor = MaterialTheme.colorScheme.primary
                         )
                     )
 
@@ -173,7 +178,7 @@ fun LoginScreen(
                             text = "¿Olvidaste tu contraseña?",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF3B82F6),
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable { showResetDialog = true }
                         )
                     }
@@ -186,13 +191,13 @@ fun LoginScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(24.dp),
                         enabled = loginState !is LoginState.Loading
                     ) {
                         if (loginState is LoginState.Loading) {
                             CircularProgressIndicator(
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         } else {
@@ -200,7 +205,7 @@ fun LoginScreen(
                                 text = "Iniciar Sesión",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -238,12 +243,12 @@ fun ForgotPasswordDialog(
                 Button(
                     onClick = { onConfirm(email) },
                     enabled = state !is ResetPasswordState.Loading,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     if (state is ResetPasswordState.Loading) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp
                         )
                     } else {
@@ -259,7 +264,8 @@ fun ForgotPasswordDialog(
         title = {
             Text(
                 text = if (state is ResetPasswordState.Success) "¡Enviado!" else "Recuperar Contraseña",
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
@@ -268,13 +274,13 @@ fun ForgotPasswordDialog(
                     Icon(
                         Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = Color(0xFF4CAF50),
+                        tint = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Hemos enviado un enlace de recuperación a tu correo electrónico.")
+                    Text("Hemos enviado un enlace de recuperación a tu correo electrónico.", color = MaterialTheme.colorScheme.onSurface)
                 } else {
-                    Text("Ingresa tu correo para enviarte un enlace de recuperación.")
+                    Text("Ingresa tu correo para enviarte un enlace de recuperación.", color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(16.dp))
                     OutlinedTextField(
                         value = email,
@@ -297,7 +303,7 @@ fun ForgotPasswordDialog(
             }
         },
         shape = RoundedCornerShape(24.dp),
-        containerColor = Color.White
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 

@@ -47,7 +47,7 @@ fun SalonScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -57,13 +57,13 @@ fun SalonScreen(
                 text = "Salón de Mesas",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF1E233D),
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(top = 20.dp, bottom = 4.dp)
             )
             Text(
                 text = "Seleccione una mesa para iniciar el pedido:",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF64748B),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -121,8 +121,8 @@ fun SalonScreen(
                     mostrarDialogoLlevar = true
                 }
             },
-            containerColor = Color(0xFF10B981),
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
@@ -141,7 +141,7 @@ fun SalonScreen(
         AlertDialog(
             onDismissRequest = { mostrarDialogoApertura = false },
             shape = RoundedCornerShape(24.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 val mesaNum = mesaSeleccionadaParaAbrir?.numero ?: ""
                 val tituloMesa = if (mesaNum.contains("Mesa", ignoreCase = true)) mesaNum else "Mesa $mesaNum"
@@ -149,7 +149,7 @@ fun SalonScreen(
                     text = "Abrir $tituloMesa",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E233D)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
@@ -157,7 +157,7 @@ fun SalonScreen(
                     Text(
                         text = "Ingrese el nombre del cliente:",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF475569)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = nombreClienteInput,
@@ -177,17 +177,17 @@ fun SalonScreen(
                         mostrarDialogoApertura = false
                         onIrAPedido(mesaId, nombreClienteInput)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(48.dp),
                     enabled = nombreClienteInput.isNotBlank()
                 ) {
-                    Text("Iniciar Atención", fontWeight = FontWeight.Bold)
+                    Text("Iniciar Atención", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoApertura = false }) {
-                    Text("Cancelar", color = Color.Gray)
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -197,13 +197,13 @@ fun SalonScreen(
         AlertDialog(
             onDismissRequest = { mostrarDialogoLlevar = false },
             shape = RoundedCornerShape(24.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
                     text = "Pedido para llevar",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E233D)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
@@ -211,7 +211,7 @@ fun SalonScreen(
                     Text(
                         text = "Ingrese el nombre del cliente:",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF475569)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = nombreClienteInput,
@@ -229,17 +229,17 @@ fun SalonScreen(
                         mostrarDialogoLlevar = false
                         onIrAPedidoParaLlevar(nombreClienteInput)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.height(48.dp),
                     enabled = nombreClienteInput.isNotBlank()
                 ) {
-                    Text("Tomar Pedido", fontWeight = FontWeight.Bold)
+                    Text("Tomar Pedido", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoLlevar = false }) {
-                    Text("Cancelar", color = Color.Gray)
+                    Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )
@@ -252,9 +252,9 @@ fun ItemMesa(mesa: MesaEntity, onClickMesa: () -> Unit) {
     val estaOcupada = mesa.estado == EstadoMesa.OCUPADA
     val nombreMesa = if (mesa.numero.contains("Mesa", ignoreCase = true)) mesa.numero else "Mesa ${mesa.numero}"
     
-    val containerColor = if (estaOcupada) Color(0xFFFEE2E2) else Color.White
-    val contentColor = if (estaOcupada) Color(0xFF991B1B) else Color(0xFF1E233D)
-    val borderColor = if (estaOcupada) Color(0xFFF87171) else Color(0xFFE2E8F0)
+    val containerColor = if (estaOcupada) Color(0xFFFEE2E2) else MaterialTheme.colorScheme.surface
+    val contentColor = if (estaOcupada) Color(0xFF991B1B) else MaterialTheme.colorScheme.onSurface
+    val borderColor = if (estaOcupada) Color(0xFFF87171) else MaterialTheme.colorScheme.outlineVariant
 
     Card(
         modifier = Modifier
@@ -318,7 +318,7 @@ fun ItemMesa(mesa: MesaEntity, onClickMesa: () -> Unit) {
                         Text(
                             text = "Disponible",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF94A3B8)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }

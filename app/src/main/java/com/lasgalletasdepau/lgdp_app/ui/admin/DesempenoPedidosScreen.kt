@@ -30,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
 import com.lasgalletasdepau.lgdp_app.ui.admin.DesempenoPedidosViewModel
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoConDetalles
+import androidx.compose.foundation.isSystemInDarkTheme
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -141,7 +142,7 @@ fun DesempenoPedidosScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             contentPadding = PaddingValues(bottom = 100.dp)
@@ -157,34 +158,34 @@ fun DesempenoPedidosScreen(
                             text = "Desempeño de Equipo",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1E233D)
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "Productividad y ventas por trabajador:",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     IconButton(
                         onClick = { exportarPDFDesempeno() },
-                        modifier = Modifier.background(Color(0xFF10B981).copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                        modifier = Modifier.background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                     ) {
-                        Icon(Icons.Default.PictureAsPdf, "Exportar PDF", tint = Color(0xFF10B981))
+                        Icon(Icons.Default.PictureAsPdf, "Exportar PDF", tint = MaterialTheme.colorScheme.secondary)
                     }
                 }
 
                 if (isLoading) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), color = Color(0xFF1E233D))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), color = MaterialTheme.colorScheme.primary)
                 }
 
                 error?.let {
                     Surface(
-                        color = Color(0xFFFFEBEE),
+                        color = Color(0xFFFFEBEE).copy(alpha = if(isSystemInDarkTheme()) 0.2f else 1f),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(it, color = Color.Red, modifier = Modifier.padding(12.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
+                        Text(it, color = if(isSystemInDarkTheme()) Color(0xFFFFCDD2) else Color.Red, modifier = Modifier.padding(12.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -192,12 +193,12 @@ fun DesempenoPedidosScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), 
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(2.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Filtrar periodo de evaluación", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text("Filtrar periodo de evaluación", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedTextField(
                                 value = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis))),
@@ -225,6 +226,7 @@ fun DesempenoPedidosScreen(
                     "Productividad por trabajador", 
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold, 
+                    color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(vertical = 12.dp)
                 )
             }
@@ -233,9 +235,9 @@ fun DesempenoPedidosScreen(
                 item {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color.LightGray)
+                            Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.outlineVariant)
                             Spacer(Modifier.height(8.dp))
-                            Text("No se encontraron datos.", color = Color.Gray, textAlign = TextAlign.Center)
+                            Text("No se encontraron datos.", color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                         }
                     }
                 }
@@ -250,39 +252,39 @@ fun DesempenoPedidosScreen(
                                 getCorrectedMillis(datePickerStateEnd.selectedDateMillis)
                             )
                         },
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(2.dp),
                         shape = RoundedCornerShape(16.dp)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Surface(
-                                    color = Color(0xFF1E233D).copy(alpha = 0.1f),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.size(48.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Group, null, tint = Color(0xFF1E233D))
+                                        Icon(Icons.Default.Group, null, tint = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                                 Spacer(Modifier.width(16.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(item.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                    Text("${item.cantidadPedidos} pedidos registrados", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                    Text(item.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                                    Text("${item.cantidadPedidos} pedidos registrados", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Text("S/ ${String.format(locale, "%.2f", item.totalVendido)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = Color(0xFF10B981))
+                                Text("S/ ${String.format(locale, "%.2f", item.totalVendido)}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.secondary)
                             }
                             
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text("Participación en ventas", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                                    Text("${String.format(locale, "%.1f", item.porcentajeVentas * 100)}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                    Text("Participación en ventas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("${String.format(locale, "%.1f", item.porcentajeVentas * 100)}%", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                                 }
                                 LinearProgressIndicator(
                                     progress = { item.porcentajeVentas },
                                     modifier = Modifier.fillMaxWidth().height(8.dp),
-                                    color = Color(0xFF3B82F6),
-                                    trackColor = Color(0xFFE2E8F0),
+                                    color = if(isSystemInDarkTheme()) Color(0xFF60A5FA) else Color(0xFF3B82F6),
+                                    trackColor = MaterialTheme.colorScheme.outlineVariant,
                                     strokeCap = StrokeCap.Round
                                 )
                             }
@@ -302,10 +304,10 @@ fun DesempenoPedidosScreen(
                 Column(modifier = Modifier.fillMaxWidth().heightIn(max = 450.dp)) {
                     if (isLoading) {
                         Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color(0xFF1E233D))
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         }
                     } else if (pedidosTrabajador.isEmpty()) {
-                        Text("No hay pedidos registrados en este periodo.", modifier = Modifier.padding(16.dp), color = Color.Gray, textAlign = TextAlign.Center)
+                        Text("No hay pedidos registrados en este periodo.", modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -313,11 +315,11 @@ fun DesempenoPedidosScreen(
                         ) {
                             items(pedidosTrabajador) { pcd ->
                                 val isCancelado = pcd.pedido.estado == EstadoPedido.CANCELADO
-                                val accentColor = if (isCancelado) Color.Red else Color(0xFF10B981)
+                                val accentColor = if (isCancelado) Color.Red else MaterialTheme.colorScheme.secondary
                                 
                                 Card(
                                     modifier = Modifier.fillMaxWidth().clickable { pedidoSeleccionadoDeta = pcd },
-                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                                     shape = RoundedCornerShape(14.dp),
                                     elevation = CardDefaults.cardElevation(2.dp)
                                 ) {
@@ -327,8 +329,8 @@ fun DesempenoPedidosScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text("Orden #${pcd.pedido.numeroPedido}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, color = Color(0xFF1E233D))
-                                            Text("${sdf.format(Date(pcd.pedido.fecha ?: 0))} • ${timeSdf.format(Date(pcd.pedido.fecha ?: 0))}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                            Text("Orden #${pcd.pedido.numeroPedido}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                                            Text("${sdf.format(Date(pcd.pedido.fecha ?: 0))} • ${timeSdf.format(Date(pcd.pedido.fecha ?: 0))}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             Spacer(Modifier.height(4.dp))
                                             Surface(
                                                 color = accentColor.copy(alpha = 0.1f),
@@ -347,7 +349,7 @@ fun DesempenoPedidosScreen(
                                             text = "S/ ${String.format(locale, "%.2f", pcd.pedido.total)}", 
                                             fontWeight = FontWeight.Black, 
                                             style = MaterialTheme.typography.titleMedium,
-                                            color = if (isCancelado) Color.Red else Color(0xFF1E233D)
+                                            color = if (isCancelado) Color.Red else MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -359,9 +361,9 @@ fun DesempenoPedidosScreen(
             confirmButton = { 
                 Button(
                     onClick = { trabajadorSeleccionadoId = null; viewModel.limpiarPedidosTrabajador() },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text("Cerrar") }
+                ) { Text("Cerrar", color = Color.White) }
             }
         )
     }
@@ -377,17 +379,17 @@ fun DesempenoPedidosScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Cliente:", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-                        Text(p.nombreCliente ?: "General", fontWeight = FontWeight.Bold)
+                        Text("Cliente:", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        Text(p.nombreCliente ?: "General", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Estado:", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-                        Text(p.estado?.valor ?: "-", color = if(isCancelado) Color.Red else Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                        Text("Estado:", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                        Text(p.estado?.valor ?: "-", color = if(isCancelado) Color.Red else MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
                     }
                     if (p.metodoPago != null) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Pago:", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
-                            Text(p.metodoPago.valor)
+                            Text("Pago:", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                            Text(p.metodoPago.valor, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                     
@@ -397,29 +399,29 @@ fun DesempenoPedidosScreen(
                         }
                     }
                     
-                    HorizontalDivider(Modifier.padding(vertical = 4.dp), color = Color(0xFFF1F5F9))
-                    Text("Productos", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    Text("Productos", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                     
                     detalles.forEach { d ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${d.cantidad}x ${d.nombreProducto}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                            Text("S/ ${String.format(locale, "%.2f", d.precioUnitario * d.cantidad)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Text("${d.cantidad}x ${d.nombreProducto}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                            Text("S/ ${String.format(locale, "%.2f", d.precioUnitario * d.cantidad)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                     
-                    HorizontalDivider(Modifier.padding(vertical = 4.dp), color = Color(0xFFF1F5F9))
+                    HorizontalDivider(Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("TOTAL", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
-                        Text("S/ ${String.format(locale, "%.2f", p.total)}", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium, color = if(isCancelado) Color.Red else Color(0xFF10B981))
+                        Text("TOTAL", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Text("S/ ${String.format(locale, "%.2f", p.total)}", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium, color = if(isCancelado) Color.Red else MaterialTheme.colorScheme.secondary)
                     }
                 }
             },
             confirmButton = { 
                 Button(
                     onClick = { pedidoSeleccionadoDeta = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text("Entendido") }
+                ) { Text("Entendido", color = Color.White) }
             }
         )
     }

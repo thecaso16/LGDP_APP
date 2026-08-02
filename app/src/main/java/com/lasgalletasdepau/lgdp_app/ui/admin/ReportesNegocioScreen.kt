@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.ui.admin.ReportesNegocioViewModel
+import androidx.compose.foundation.isSystemInDarkTheme
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -151,7 +152,7 @@ fun ReportesNegocioScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
             contentPadding = PaddingValues(bottom = 100.dp),
@@ -168,43 +169,43 @@ fun ReportesNegocioScreen(
                             text = "Reportes del Negocio",
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF1E233D)
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "Estadísticas y balance general:",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF64748B)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     
                     IconButton(
                         onClick = { exportarReportePDF() },
-                        modifier = Modifier.background(Color(0xFF10B981).copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                        modifier = Modifier.background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                     ) {
-                        Icon(Icons.Default.PictureAsPdf, "Exportar PDF", tint = Color(0xFF10B981))
+                        Icon(Icons.Default.PictureAsPdf, "Exportar PDF", tint = MaterialTheme.colorScheme.secondary)
                     }
                 }
 
-                if (isLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = Color(0xFF1E233D))
+                if (isLoading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary)
                 
                 error?.let {
                     Surface(
-                        color = Color(0xFFFFEBEE),
+                        color = Color(0xFFFFEBEE).copy(alpha = if(isSystemInDarkTheme()) 0.2f else 1f),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(it, color = Color.Red, modifier = Modifier.padding(12.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
+                        Text(it, color = if(isSystemInDarkTheme()) Color(0xFFFFCDD2) else Color.Red, modifier = Modifier.padding(12.dp), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodySmall)
                     }
                 }
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(2.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Filtrar por periodo", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text("Filtrar por periodo", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedTextField(
                                 value = sdf.format(Date(getCorrectedMillis(datePickerStateStart.selectedDateMillis))),
@@ -231,63 +232,63 @@ fun ReportesNegocioScreen(
 
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    IndicadorCard(Modifier.weight(1f), "Ingresos Totales", "S/ ${String.format(locale, "%.2f", totalIngresos)}", Icons.AutoMirrored.Filled.TrendingUp, Color(0xFF10B981))
-                    IndicadorCard(Modifier.weight(1f), "Pedidos Pagados", "$totalPedidos", Icons.Default.Analytics, Color(0xFF1E233D))
+                    IndicadorCard(Modifier.weight(1f), "Ingresos Totales", "S/ ${String.format(locale, "%.2f", totalIngresos)}", Icons.AutoMirrored.Filled.TrendingUp, MaterialTheme.colorScheme.secondary)
+                    IndicadorCard(Modifier.weight(1f), "Pedidos Pagados", "$totalPedidos", Icons.Default.Analytics, MaterialTheme.colorScheme.primary)
                 }
             }
 
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     IndicadorCard(Modifier.weight(1f), "Pedidos Anulados", "$totalCancelados", Icons.Default.Cancel, Color.Red)
-                    IndicadorCard(Modifier.weight(1f), "Egresos Totales", "S/ ${String.format(locale, "%.2f", totalEgresos)}", Icons.Default.Analytics, Color.DarkGray)
+                    IndicadorCard(Modifier.weight(1f), "Egresos Totales", "S/ ${String.format(locale, "%.2f", totalEgresos)}", Icons.Default.Analytics, MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(2.dp),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("Resumen por Método de Pago", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                        Text("Resumen por Método de Pago", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         ventasPorMetodo.forEach { (metodo, monto) ->
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(metodo, style = MaterialTheme.typography.bodySmall)
-                                Text("S/ ${String.format(locale, "%.2f", monto)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                Text(metodo, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("S/ ${String.format(locale, "%.2f", monto)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
-                        HorizontalDivider(color = Color(0xFFF1F5F9))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Ticket Promedio:", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-                            Text("S/ ${String.format(locale, "%.2f", promedioTicket)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Ticket Promedio:", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("S/ ${String.format(locale, "%.2f", promedioTicket)}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
             }
 
             item {
-                Text("Productos más vendidos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Productos más vendidos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             }
 
             if (topProductos.isEmpty() && !isLoading) {
-                item { Text("No hay datos disponibles.", color = Color.Gray, modifier = Modifier.padding(start = 8.dp)) }
+                item { Text("No hay datos disponibles.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp)) }
             } else {
                 items(topProductos.take(10)) { prod ->
-                    ProductoBarra(prod, Color(0xFF3B82F6), locale)
+                    ProductoBarra(prod, if(isSystemInDarkTheme()) Color(0xFF60A5FA) else Color(0xFF3B82F6), locale)
                 }
             }
 
             item {
-                Text("Productos menos vendidos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Productos menos vendidos", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             }
 
             if (bottomProductos.isEmpty() && !isLoading) {
-                item { Text("No hay datos disponibles.", color = Color.Gray, modifier = Modifier.padding(start = 8.dp)) }
+                item { Text("No hay datos disponibles.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 8.dp)) }
             } else {
                 items(bottomProductos.take(10)) { prod ->
-                    ProductoBarra(prod, Color(0xFFF59E0B), locale)
+                    ProductoBarra(prod, if(isSystemInDarkTheme()) Color(0xFFFBBF24) else Color(0xFFF59E0B), locale)
                 }
             }
             
@@ -302,18 +303,18 @@ fun ProductoBarra(prod: ProductoEstadistica, color: Color, locale: Locale) {
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(1.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Text(prod.nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                Text("${prod.cantidadVendida} und.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                Text(prod.nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                Text("${prod.cantidadVendida} und.", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
             }
             LinearProgressIndicator(
                 progress = { prod.porcentaje },
                 modifier = Modifier.fillMaxWidth().height(8.dp),
                 color = color,
-                trackColor = Color(0xFFE2E8F0),
+                trackColor = MaterialTheme.colorScheme.outlineVariant,
                 strokeCap = StrokeCap.Round
             )
         }
@@ -324,14 +325,14 @@ fun ProductoBarra(prod: ProductoEstadistica, color: Color, locale: Locale) {
 fun IndicadorCard(modifier: Modifier, label: String, value: String, icon: ImageVector, color: Color) {
     Card(
         modifier = modifier, 
-        colors = CardDefaults.cardColors(containerColor = Color.White), 
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), 
         elevation = CardDefaults.cardElevation(2.dp), 
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
-            Text(label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

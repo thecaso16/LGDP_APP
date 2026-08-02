@@ -45,6 +45,7 @@ class GestionUsuariosViewModel(application: Application) : AndroidViewModel(appl
                 
                 // Sincronizar con Room localmente
                 lista.forEach { u ->
+                    val existente = appDao.obtenerUsuarioPorId(u.id)
                     appDao.insertarUsuario(UsuarioEntity(
                         uid = u.id,
                         email = u.email,
@@ -53,6 +54,7 @@ class GestionUsuariosViewModel(application: Application) : AndroidViewModel(appl
                         dni = u.dni,
                         rol = u.rol,
                         activo = u.activo,
+                        esSesionActual = existente?.esSesionActual ?: false,
                         creadoEn = u.creadoEn?.toDate()?.time,
                         ultimaModificacion = u.ultimaModificacion?.toDate()?.time
                     ))
@@ -155,9 +157,16 @@ class GestionUsuariosViewModel(application: Application) : AndroidViewModel(appl
     }
 
     private suspend fun actualizarLocal(u: Usuario) {
+        val existente = appDao.obtenerUsuarioPorId(u.id)
         appDao.insertarUsuario(UsuarioEntity(
-            uid = u.id, email = u.email, nombres = u.nombres, 
-            apellidos = u.apellidos, dni = u.dni, rol = u.rol, activo = u.activo,
+            uid = u.id, 
+            email = u.email, 
+            nombres = u.nombres, 
+            apellidos = u.apellidos, 
+            dni = u.dni, 
+            rol = u.rol, 
+            activo = u.activo,
+            esSesionActual = existente?.esSesionActual ?: false,
             creadoEn = u.creadoEn?.toDate()?.time,
             ultimaModificacion = u.ultimaModificacion?.toDate()?.time
         ))

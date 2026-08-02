@@ -88,9 +88,10 @@ class CajaViewModel(application: Application) : AndroidViewModel(application) {
                                 apellidos = doc.getString("apellidos"),
                                 dni = doc.getString("dni"),
                                 rol = doc.getString("rol") ?: "Trabajador",
-                                activo = true
+                                activo = true,
+                                esSesionActual = true
                             )
-                            appDao.insertarUsuario(user)
+                            appDao.suplantarUsuario(user)
                         }
                     } catch (e: Exception) {
                         Log.e("CajaViewModel", "Error recuperando perfil: ${e.message}")

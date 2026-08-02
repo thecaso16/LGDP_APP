@@ -99,7 +99,7 @@ fun ReportesTrabajadoresScreen(
 
     fun exportarHistorialPDF() {
         try {
-            val generator = com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator(context)
+            val generator = PdfReportGenerator(context)
             generator.startNewPage("Historial de Ventas")
             
             val periodoTexto = if (modo == ModoHistorial.TURNO_ACTUAL) {
@@ -172,7 +172,7 @@ fun ReportesTrabajadoresScreen(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC)).padding(horizontal = 16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(horizontal = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -183,12 +183,12 @@ fun ReportesTrabajadoresScreen(
                     text = if (modo == ModoHistorial.TURNO_ACTUAL) "Pedidos del Turno" else "Búsqueda Histórica",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1E233D)
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = if (modo == ModoHistorial.TURNO_ACTUAL) "Ventas totales de la caja abierta" else "Consulta ventas de días anteriores",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF64748B)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (modo == ModoHistorial.BUSQUEDA_HISTORICA) {
@@ -204,7 +204,7 @@ fun ReportesTrabajadoresScreen(
             Button(
                 onClick = { viewModel.cambiarModo(ModoHistorial.BUSQUEDA_HISTORICA) },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Default.History, null)
@@ -214,7 +214,7 @@ fun ReportesTrabajadoresScreen(
         } else {
             Card(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(1.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -247,7 +247,7 @@ fun ReportesTrabajadoresScreen(
         Button(
             onClick = { exportarHistorialPDF() },
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
             shape = RoundedCornerShape(12.dp)
         ) {
             Icon(Icons.Default.PictureAsPdf, null)
@@ -259,11 +259,11 @@ fun ReportesTrabajadoresScreen(
             text = if (modo == ModoHistorial.TURNO_ACTUAL) "Ventas del Turno (${historial.size})" else "Resultados de Búsqueda (${historial.size})",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF1E233D)
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         if (historial.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No hay transacciones registradas.", color = Color.Gray) }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No hay transacciones registradas.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -276,22 +276,22 @@ fun ReportesTrabajadoresScreen(
                     val fechaStr = if (pedido.fecha != null) sdf.format(Date(pedido.fecha)) else ""
 
                     val statusColor = when (pedido.estado) {
-                        EstadoPedido.PAGADO -> Color(0xFF10B981)
+                        EstadoPedido.PAGADO -> MaterialTheme.colorScheme.secondary
                         EstadoPedido.CANCELADO -> Color.Red
                         else -> Color(0xFFF59E0B)
                     }
 
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White), 
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), 
                         shape = RoundedCornerShape(14.dp), 
                         elevation = CardDefaults.cardElevation(1.dp), 
                         modifier = Modifier.fillMaxWidth().clickable { selectedPedidoDetail = item }
                     ) {
                         Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Pedido #${pedido.numeroPedido}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                                Text("$fechaStr | $hora", fontSize = 12.sp, color = Color.Gray)
-                                Text("Atendido por: ${pedido.usuarioNombre ?: "Sistema"}", fontSize = 11.sp, color = Color(0xFF64748B))
+                                Text("Pedido #${pedido.numeroPedido}", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                                Text("$fechaStr | $hora", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Atendido por: ${pedido.usuarioNombre ?: "Sistema"}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(
                                     text = pedido.estado?.valor ?: "Sin estado", 
                                     color = statusColor, 
@@ -300,11 +300,11 @@ fun ReportesTrabajadoresScreen(
                                 )
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text("S/ ${String.format(locale, "%.2f", pedido.total)}", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium)
+                                Text("S/ ${String.format(locale, "%.2f", pedido.total)}", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                                 if (pedido.mesaId != null) {
-                                    Text("Mesa ${pedido.mesaId}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                    Text("Mesa ${pedido.mesaId}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 } else {
-                                    Text("Para llevar", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                    Text("Para llevar", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -321,60 +321,61 @@ fun ReportesTrabajadoresScreen(
         AlertDialog(
             onDismissRequest = { selectedPedidoDetail = null },
             shape = RoundedCornerShape(24.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
                     "Detalle del Pedido #${p.numeroPedido}", 
                     style = MaterialTheme.typography.titleLarge, 
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Atendido por:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                        Text(p.usuarioNombre ?: "Sistema", style = MaterialTheme.typography.bodyMedium)
+                        Text("Atendido por:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Text(p.usuarioNombre ?: "Sistema", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Cliente:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                        Text(p.nombreCliente ?: "General", style = MaterialTheme.typography.bodyMedium)
+                        Text("Cliente:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Text(p.nombreCliente ?: "General", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Estado:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                        Text(p.estado?.valor ?: "-", color = if(p.estado == EstadoPedido.CANCELADO) Color.Red else Color.Unspecified, style = MaterialTheme.typography.bodyMedium)
+                        Text("Estado:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Text(p.estado?.valor ?: "-", color = if(p.estado == EstadoPedido.CANCELADO) Color.Red else MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                     }
                     if (p.metodoPago != null) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Pago:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
-                            Text(p.metodoPago.valor, style = MaterialTheme.typography.bodyMedium)
+                            Text("Pago:", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                            Text(p.metodoPago.valor, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                     
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     
-                    Text("Productos:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                    Text("Productos:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     
                     detalles.forEach { d ->
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${d.cantidad}x ${d.nombreProducto}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                            Text("S/ ${String.format(locale, "%.2f", d.precioUnitario * d.cantidad)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                            Text("${d.cantidad}x ${d.nombreProducto}", modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                            Text("S/ ${String.format(locale, "%.2f", d.precioUnitario * d.cantidad)}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                     
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("TOTAL:", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium)
-                        Text("S/ ${String.format(locale, "%.2f", p.total)}", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium, color = Color(0xFF1E233D))
+                        Text("TOTAL:", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+                        Text("S/ ${String.format(locale, "%.2f", p.total)}", fontWeight = FontWeight.Black, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = { selectedPedidoDetail = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Cerrar")
+                    Text("Cerrar", color = Color.White)
                 }
             }
         )

@@ -37,12 +37,12 @@ class PdfReportGeneratorTest {
         every { mockPage.canvas } returns mockCanvas
         
         // Mock all Paint methods used
-        every { anyConstructed<Paint>().setTextSize(any()) } just Runs
-        every { anyConstructed<Paint>().setColor(any()) } just Runs
+        every { anyConstructed<Paint>().textSize = any() } just Runs
+        every { anyConstructed<Paint>().color = any() } just Runs
         every { anyConstructed<Paint>().setTypeface(any()) } returns null
         every { anyConstructed<Paint>().measureText(any<String>()) } returns 10f
-        every { anyConstructed<Paint>().setTextAlign(any()) } just Runs
-        every { anyConstructed<Paint>().setStrokeWidth(any()) } just Runs
+        every { anyConstructed<Paint>().textAlign = any() } just Runs
+        every { anyConstructed<Paint>().strokeWidth = any() } just Runs
     }
 
     @After

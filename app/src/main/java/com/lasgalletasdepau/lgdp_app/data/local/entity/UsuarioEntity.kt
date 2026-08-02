@@ -12,6 +12,7 @@ data class UsuarioEntity(
     val dni: String?,
     val rol: String?, // Soporta "Trabajador,Cajero" o roles individuales
     val activo: Boolean = true,
+    val esSesionActual: Boolean = false,
     val creadoEn: Long? = null,
     val ultimaModificacion: Long? = null
 )

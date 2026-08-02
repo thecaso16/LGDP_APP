@@ -3,6 +3,7 @@ package com.lasgalletasdepau.lgdp_app.ui.admin
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -60,6 +61,7 @@ fun GestionCatalogoScreen(
     var editControlaStock by remember { mutableStateOf(false) }
     var editDisponible by remember { mutableStateOf(true) }
     var editRecomendado by remember { mutableStateOf(false) }
+    var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
 
     var mostrarDialogoVinculos by remember { mutableStateOf<Producto?>(null) }
     var vinculosActuales by remember { mutableStateOf<List<ProductoInsumoEntity>>(emptyList()) }
@@ -70,14 +72,14 @@ fun GestionCatalogoScreen(
     var mostrarDialogoCat by remember { mutableStateOf(false) }
     var nombreNuevaCat by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 20.dp, bottom = 100.dp)
         ) {
             item {
                 if (isLoading) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp), color = Color(0xFF1E233D))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp), color = MaterialTheme.colorScheme.primary)
                 }
                 
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -85,12 +87,12 @@ fun GestionCatalogoScreen(
                         text = "Gestión de Catálogo",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1E233D)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "Organice su carta de productos y categorías:",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(Modifier.height(16.dp))
@@ -107,14 +109,22 @@ fun GestionCatalogoScreen(
                         FilterChip(
                             selected = filtroCategoriaId == "Todos", 
                             onClick = { filtroCategoriaId = "Todos" }, 
-                            label = { Text("Todos") }
+                            label = { Text("Todos") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         )
                     }
                     items(categorias) { cat ->
                         FilterChip(
                             selected = filtroCategoriaId == cat.id, 
                             onClick = { filtroCategoriaId = cat.id }, 
-                            label = { Text(cat.nombre) }
+                            label = { Text(cat.nombre) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         )
                     }
                     item {
@@ -123,8 +133,8 @@ fun GestionCatalogoScreen(
                             onClick = { mostrarDialogoCat = true },
                             modifier = Modifier.height(32.dp),
                             shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFF1E233D).copy(alpha = 0.08f),
-                            contentColor = Color(0xFF1E233D)
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            contentColor = MaterialTheme.colorScheme.primary
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp),
@@ -145,23 +155,28 @@ fun GestionCatalogoScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(4.dp)
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Nuevo Producto", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Nuevo Producto", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             
                             OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre del producto") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                             OutlinedTextField(value = nuevoDescripcion, onValueChange = { nuevoDescripcion = it }, label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
                             OutlinedTextField(value = nuevoPrecio, onValueChange = { nuevoPrecio = it }, label = { Text("Precio (S/.)") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = RoundedCornerShape(12.dp))
                             
                             Column {
-                                Text("Categoría:", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                                Text("Categoría:", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(top = 4.dp)) {
                                     items(categorias) { cat ->
                                         FilterChip(
                                             selected = nuevaCatId == cat.id, 
                                             onClick = { nuevaCatId = cat.id }, 
-                                            label = { Text(cat.nombre) }
+                                            label = { Text(cat.nombre) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                            )
                                         )
                                     }
                                 }
@@ -173,12 +188,12 @@ fun GestionCatalogoScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Controlar stock", style = MaterialTheme.typography.bodyMedium)
+                                    Text("Controlar stock", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                                     Spacer(Modifier.width(8.dp))
                                     Switch(checked = controlaStock, onCheckedChange = { controlaStock = it })
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Recomendado", style = MaterialTheme.typography.bodyMedium)
+                                    Text("Recomendado", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                                     Spacer(Modifier.width(8.dp))
                                     Switch(checked = nuevoRecomendado, onCheckedChange = { nuevoRecomendado = it })
                                 }
@@ -217,7 +232,7 @@ fun GestionCatalogoScreen(
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 enabled = nuevoNombre.isNotBlank() && nuevaCatId.isNotBlank(),
                                 shape = RoundedCornerShape(12.dp)
                             ) { Text("Guardar Producto") }
@@ -240,27 +255,27 @@ fun GestionCatalogoScreen(
                         editDisponible = prod.estaDisponible
                         editRecomendado = prod.recomendado
                     },
-                    colors = CardDefaults.cardColors(containerColor = if(prod.estaDisponible) Color.White else Color(0xFFF1F5F9)),
+                    colors = CardDefaults.cardColors(containerColor = if(prod.estaDisponible) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant),
                     elevation = CardDefaults.cardElevation(1.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(prod.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                            Text(prod.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             val catNombre = categorias.find { it.id == prod.categoriaId }?.nombre ?: prod.categoriaId
                             val locale = LocalConfiguration.current.locales[0]
-                            Text("S/ ${String.format(locale, "%.2f", prod.precio)} | $catNombre", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Text("S/ ${String.format(locale, "%.2f", prod.precio)} | $catNombre", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (prod.controlaStock) {
                             Surface(
-                                color = if (prod.stock < 5) Color(0xFFFFEBEE) else Color(0xFFE8F5E9),
+                                color = if (prod.stock < 5) Color(0xFFFFEBEE).copy(alpha = if(isSystemInDarkTheme()) 0.2f else 1f) else Color(0xFFE8F5E9).copy(alpha = if(isSystemInDarkTheme()) 0.2f else 1f),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
                                     "Stock: ${prod.stock}", 
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     style = MaterialTheme.typography.labelLarge,
-                                    color = if (prod.stock < 5) Color.Red else Color(0xFF2E7D32), 
+                                    color = if (prod.stock < 5) Color.Red else (if(isSystemInDarkTheme()) Color(0xFFA5D6A7) else Color(0xFF2E7D32)), 
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -272,8 +287,8 @@ fun GestionCatalogoScreen(
 
         FloatingActionButton(
             onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
-            containerColor = Color(0xFF1E233D),
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -285,7 +300,8 @@ fun GestionCatalogoScreen(
     if (mostrarDialogoCat) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoCat = false },
-            title = { Text("Nueva Categoría") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Nueva Categoría", color = MaterialTheme.colorScheme.onSurface) },
             text = { 
                 OutlinedTextField(
                     value = nombreNuevaCat, 
@@ -302,11 +318,11 @@ fun GestionCatalogoScreen(
                         mostrarDialogoCat = false
                         nombreNuevaCat = "" 
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
-                ) { Text("Añadir") } 
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) { Text("Añadir", color = Color.White) } 
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogoCat = false }) { Text("Cancelar") }
+                TextButton(onClick = { mostrarDialogoCat = false }) { Text("Cancelar", color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
         )
     }
@@ -315,7 +331,8 @@ fun GestionCatalogoScreen(
         AlertDialog(
             onDismissRequest = { productoSeleccionado = null },
             shape = RoundedCornerShape(28.dp),
-            title = { Text("Editar Producto", fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Editar Producto", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(value = editNombre, onValueChange = { editNombre = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
@@ -323,13 +340,17 @@ fun GestionCatalogoScreen(
                     OutlinedTextField(value = editPrecio, onValueChange = { editPrecio = it }, label = { Text("Precio") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                     
                     Column {
-                        Text("Categoría:", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                        Text("Categoría:", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), contentPadding = PaddingValues(top = 4.dp)) {
                             items(categorias) { cat ->
                                 FilterChip(
                                     selected = editCatId == cat.id, 
                                     onClick = { editCatId = cat.id }, 
-                                    label = { Text(cat.nombre) }
+                                    label = { Text(cat.nombre) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    )
                                 )
                             }
                         }
@@ -348,31 +369,17 @@ fun GestionCatalogoScreen(
                     
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Controlar stock")
+                            Text("Controlar stock", color = MaterialTheme.colorScheme.onSurface)
                             Switch(checked = editControlaStock, onCheckedChange = { editControlaStock = it })
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Disponible")
+                            Text("Disponible", color = MaterialTheme.colorScheme.onSurface)
                             Switch(checked = editDisponible, onCheckedChange = { editDisponible = it })
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Recomendado")
+                            Text("Recomendado", color = MaterialTheme.colorScheme.onSurface)
                             Switch(checked = editRecomendado, onCheckedChange = { editRecomendado = it })
                         }
-                    }
-
-                    Button(
-                        onClick = {
-                            viewModel.obtenerInsumosRelacionados(productoSeleccionado!!.id) {
-                                vinculosActuales = it
-                                mostrarDialogoVinculos = productoSeleccionado
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64748B)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text("Configurar Ingredientes")
                     }
                 }
             },
@@ -396,15 +403,37 @@ fun GestionCatalogoScreen(
                             if (it) productoSeleccionado = null
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
-                ) { Text("Actualizar") }
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) { Text("Actualizar", color = Color.White) }
             },
             dismissButton = {
-                TextButton(onClick = { 
-                    productoSeleccionado?.id?.let { id ->
-                        viewModel.eliminarProductoLogico(id) { if (it) productoSeleccionado = null }
-                    }
-                }) { Text("Eliminar", color = Color.Red) }
+                TextButton(onClick = { mostrarConfirmarEliminar = true }) { Text("Eliminar", color = Color.Red) }
+            }
+        )
+    }
+
+    if (mostrarConfirmarEliminar) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmarEliminar = false },
+            title = { Text("¿Eliminar producto?") },
+            text = { Text("¿Está seguro de que desea eliminar este producto del catálogo?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        productoSeleccionado?.id?.let { id ->
+                            viewModel.eliminarProductoLogico(id) {
+                                if (it) {
+                                    productoSeleccionado = null
+                                    mostrarConfirmarEliminar = false
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) { Text("Eliminar") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmarEliminar = false }) { Text("Cancelar") }
             }
         )
     }
@@ -469,8 +498,8 @@ fun GestionCatalogoScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = insumoParaVincularId.isNotBlank() && cantidadVinculo.isNotBlank(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
-                    ) { Text("Vincular") }
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) { Text("Vincular", color = Color.White) }
                 }
             },
             confirmButton = { TextButton(onClick = { mostrarDialogoVinculos = null }) { Text("Cerrar") } }

@@ -37,26 +37,26 @@ fun PedidosPendientesScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp)
     ) {
         Text(
             text = "Pedidos Pendientes",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF1E233D),
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 20.dp, bottom = 4.dp)
         )
         Text(
             text = "Comandas activas esperando atención:",
             style = MaterialTheme.typography.bodyMedium,
-            color = Color(0xFF64748B),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
         if (pedidosActivos.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No hay pedidos activos en este momento.", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
+                Text("No hay pedidos activos en este momento.", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyColumn(
@@ -76,7 +76,7 @@ fun PedidosPendientesScreen(
                             .fillMaxWidth()
                             .clickable { onVerDetalle(p.pedidoId) },
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(1.dp)
                     ) {
                         Row(
@@ -85,17 +85,17 @@ fun PedidosPendientesScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(text = "Orden #${p.numeroPedido}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF1E233D))
+                                Text(text = "Orden #${p.numeroPedido}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                                 Text(
                                     text = "$hora | ${if(p.mesaId != null) "Mesa ${p.mesaId}" else "Para llevar"}", 
                                     style = MaterialTheme.typography.bodySmall, 
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = item.detalles.joinToString { "${it.cantidad}x ${it.nombreProducto}" },
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color(0xFF64748B),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1
                                 )
                             }
@@ -104,11 +104,11 @@ fun PedidosPendientesScreen(
                                 text = String.format(locale, "S/ %.2f", p.total),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Black,
-                                color = Color(0xFF1E233D),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(horizontal = 12.dp)
                             )
 
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color.LightGray)
+                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.outlineVariant)
                         }
                     }
                 }

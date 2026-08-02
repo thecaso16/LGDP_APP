@@ -1,5 +1,6 @@
 package com.lasgalletasdepau.lgdp_app.ui.admin
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -56,8 +57,8 @@ fun AdminHistorialScreen(modifier: Modifier = Modifier) {
             TopAppBar(
                 title = { Text("Historial de Comandas", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White
                 )
             )
         }
@@ -66,14 +67,21 @@ fun AdminHistorialScreen(modifier: Modifier = Modifier) {
             modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // Barra de pestañas para filtrar rápidamente
-            TabRow(selectedTabIndex = tabSeleccionada) {
+            TabRow(
+                selectedTabIndex = tabSeleccionada,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
                 titulosTabs.forEachIndexed { indice, titulo ->
                     Tab(
                         selected = tabSeleccionada == indice,
                         onClick = { tabSeleccionada = indice },
-                        text = { Text(titulo, fontSize = 14.sp) }
+                        text = { Text(titulo, fontSize = 14.sp) },
+                        selectedContentColor = MaterialTheme.colorScheme.primary,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -84,7 +92,7 @@ fun AdminHistorialScreen(modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No hay comandas en esta categoría", color = Color.Gray)
+                    Text("No hay comandas en esta categoría", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
                 LazyColumn(
@@ -118,7 +126,11 @@ fun TarjetaComandaHistorial(comanda: ComandaHistorial) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Fila superior: Mesa y Estado
@@ -130,7 +142,8 @@ fun TarjetaComandaHistorial(comanda: ComandaHistorial) {
                 Text(
                     text = comanda.mesa,
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 // Tag de Estado
                 Surface(
@@ -153,27 +166,28 @@ fun TarjetaComandaHistorial(comanda: ComandaHistorial) {
             Text(
                 text = "Mozo: ${comanda.mozo} • ${comanda.hora}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
             // Lista de platillos pedidos
             Text(
                 text = "Detalle del pedido:",
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             comanda.items.forEach { item ->
                 Text(
                     text = item,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(vertical = 2.dp)
+                    modifier = Modifier.padding(vertical = 2.dp),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
             // Fila inferior: Total de la comanda
             Row(
@@ -183,7 +197,8 @@ fun TarjetaComandaHistorial(comanda: ComandaHistorial) {
                 Text(
                     text = "Total:",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = String.format("S/ %.2f", comanda.total),

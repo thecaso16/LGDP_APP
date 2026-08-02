@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
@@ -63,7 +65,7 @@ fun GestionUsuariosScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(), 
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -71,7 +73,7 @@ fun GestionUsuariosScreen(
         ) {
             item {
                 if (isLoading && usuarios.isEmpty()) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), color = Color(0xFF1E233D))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), color = MaterialTheme.colorScheme.primary)
                 }
                 
                 Column {
@@ -79,12 +81,12 @@ fun GestionUsuariosScreen(
                         text = "Gestión de Personal",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1E233D)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "Administre los accesos y perfiles del equipo:",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(Modifier.height(8.dp))
@@ -95,7 +97,8 @@ fun GestionUsuariosScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(4.dp)
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("Registrar Trabajador", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -113,7 +116,7 @@ fun GestionUsuariosScreen(
                                 shape = RoundedCornerShape(12.dp)
                             )
 
-                            Text("Asignar roles:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = Color.Gray)
+                            Text("Asignar roles:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 listOf("Trabajador", "Cajero", "Administrador").forEach { rol ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -123,7 +126,7 @@ fun GestionUsuariosScreen(
                                                 rolesSeleccionados = if (isChecked) rolesSeleccionados + rol else rolesSeleccionados - rol
                                             }
                                         )
-                                        Text(rol, style = MaterialTheme.typography.bodySmall)
+                                        Text(rol, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                                     }
                                 }
                             }
@@ -136,11 +139,11 @@ fun GestionUsuariosScreen(
                                     } }
                                 },
                                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 enabled = nuevoNombres.isNotBlank() && nuevoEmail.contains("@") && nuevaContrasena.length >= 6 && rolesSeleccionados.isNotEmpty(),
                                 shape = RoundedCornerShape(12.dp)
                             ) { 
-                                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                                 else Text("Registrar Trabajador") 
                             }
                         }
@@ -159,24 +162,24 @@ fun GestionUsuariosScreen(
                         editActivo = usuario.activo
                         editRoles = usuario.rol.split(Regex("[,/]")).filter { it.isNotBlank() }.toSet()
                     },
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(1.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Surface(
-                            color = Color(0xFF1E233D).copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.size(44.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF1E233D))
+                                Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                             }
                         }
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("${usuario.nombres} ${usuario.apellidos}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                            Text("Roles: ${usuario.rol}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Text("${usuario.nombres} ${usuario.apellidos}", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Roles: ${usuario.rol}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Surface(
                             color = if (usuario.activo) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
@@ -197,8 +200,8 @@ fun GestionUsuariosScreen(
 
         FloatingActionButton(
             onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
-            containerColor = Color(0xFF1E233D),
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -213,19 +216,24 @@ fun GestionUsuariosScreen(
         AlertDialog(
             onDismissRequest = { usuarioSeleccionado = null },
             shape = RoundedCornerShape(28.dp),
-            containerColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
                     text = "Editar Perfil",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E233D)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             },
             text = {
-                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("DATOS PERSONALES", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = Color.Gray)
+                        Text("DATOS PERSONALES", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         OutlinedTextField(
                             value = editNombres, 
                             onValueChange = { editNombres = it }, 
@@ -258,11 +266,11 @@ fun GestionUsuariosScreen(
                     }
                     
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("ROLES ASIGNADOS", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = Color.Gray)
+                        Text("ROLES ASIGNADOS", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
                                 .padding(8.dp)
                         ) {
                             listOf("Trabajador", "Cajero", "Administrador").forEach { rol ->
@@ -281,14 +289,14 @@ fun GestionUsuariosScreen(
                                             editRoles = if (isChecked) editRoles + rol else editRoles - rol
                                         }
                                     )
-                                    Text(rol, style = MaterialTheme.typography.bodyMedium)
+                                    Text(rol, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }
                     }
                     
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("ESTADO DE ACCESO", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = Color.Gray)
+                        Text("ESTADO DE ACCESO", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Surface(
                             color = if (editActivo) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
                             shape = RoundedCornerShape(12.dp),
@@ -339,7 +347,7 @@ fun GestionUsuariosScreen(
                         viewModel.actualizarUsuarioFirestore(editado, editRoles.toList()) { if (it) usuarioSeleccionado = null }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("GUARDAR CAMBIOS", fontWeight = FontWeight.Black)

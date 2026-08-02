@@ -9,35 +9,41 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Color(0xFFBFDBFE), // Azul más claro para mayor visibilidad
+    onPrimary = NavyBrand,
+    secondary = Color(0xFF34D399), // Verde esmeralda más claro
+    onSecondary = NavyBrand,
+    background = Color(0xFF0F172A), 
+    surface = Color(0xFF1E293B),    
+    onBackground = Color.White,
+    onSurface = Color.White,
+    surfaceVariant = Color(0xFF334155), 
+    onSurfaceVariant = Color(0xFFE2E8F0), 
+    outlineVariant = Color(0xFF475569)   
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = NavyBrand,
     onPrimary = Color.White,
+    secondary = EmeraldBrand,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    background = LightBackground,
+    surface = Color.White,
+    onBackground = NavyBrand,
+    onSurface = NavyBrand,
+    surfaceVariant = Color(0xFFF1F5F9),
+    onSurfaceVariant = Color(0xFF64748B) // Gris más oscuro para mejor contraste
 )
 
 @Composable
 fun LGDP_APPTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    // Desactivamos dynamicColor por defecto para priorizar los colores de marca
+    dynamicColor: Boolean = false, 
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

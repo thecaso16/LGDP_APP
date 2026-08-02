@@ -58,6 +58,9 @@ interface AppDao {
     @Query("SELECT * FROM pedidos WHERE pedidoId = :pedidoId")
     suspend fun obtenerPedidoPorId(pedidoId: String): PedidoEntity?
 
+    @Query("SELECT MAX(numeroPedido) FROM pedidos WHERE fecha >= :inicioDia AND fecha <= :finDia")
+    suspend fun obtenerUltimoNumeroPedidoDelDia(inicioDia: Long, finDia: Long): Int?
+
     @Query("SELECT * FROM pedidos WHERE (usuarioId = :usuarioId OR :verTodo = 1) AND estado != 'PAGADO' AND estado != 'CANCELADO' ORDER BY fecha DESC")
     suspend fun obtenerPedidosActivos(usuarioId: String, verTodo: Int): List<PedidoEntity>
 
@@ -124,19 +127,19 @@ interface AppDao {
     @Query("SELECT * FROM usuarios WHERE uid = :uid")
     suspend fun obtenerUsuarioPorId(uid: String): UsuarioEntity?
 
-    @Query("SELECT * FROM usuarios LIMIT 1")
+    @Query("SELECT * FROM usuarios WHERE esSesionActual = 1 LIMIT 1")
     fun obtenerUsuarioLogueado(): Flow<UsuarioEntity?>
 
-    @Query("SELECT * FROM usuarios LIMIT 1")
+    @Query("SELECT * FROM usuarios WHERE esSesionActual = 1 LIMIT 1")
     suspend fun obtenerUsuarioLogueadoSync(): UsuarioEntity?
 
-    @Query("DELETE FROM usuarios")
-    suspend fun limpiarUsuarios()
+    @Query("UPDATE usuarios SET esSesionActual = 0")
+    suspend fun desmarcarSesiones()
 
     @Transaction
     suspend fun suplantarUsuario(usuario: UsuarioEntity) {
-        limpiarUsuarios()
-        insertarUsuario(usuario)
+        desmarcarSesiones()
+        insertarUsuario(usuario.copy(esSesionActual = true))
     }
 
     @Query("DELETE FROM usuarios")

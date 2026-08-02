@@ -48,14 +48,14 @@ fun GestionInventarioScreen(
     var editCant by remember { mutableStateOf("") }
     var editMin by remember { mutableStateOf("") }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 20.dp, bottom = 100.dp)
         ) {
             item {
                 if (isLoading && insumos.isEmpty()) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), color = Color(0xFF1E233D))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), color = MaterialTheme.colorScheme.primary)
                 }
                 
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -63,12 +63,12 @@ fun GestionInventarioScreen(
                         text = "Inventario de Insumos",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = Color(0xFF1E233D)
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "Controle las existencias de materia prima:",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF64748B)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Spacer(Modifier.height(16.dp))
@@ -90,24 +90,30 @@ fun GestionInventarioScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(4.dp)
+                        elevation = CardDefaults.cardElevation(4.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Nuevo Insumo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text("Nuevo Insumo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             OutlinedTextField(value = nuevoNombre, onValueChange = { nuevoNombre = it }, label = { Text("Nombre del insumo") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 OutlinedTextField(value = nuevaCant, onValueChange = { nuevaCant = it }, label = { Text("Stock actual") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = RoundedCornerShape(12.dp))
                                 OutlinedTextField(value = nuevaMin, onValueChange = { nuevaMin = it }, label = { Text("Stock mínimo") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = RoundedCornerShape(12.dp))
                             }
-                            
-                            Column {
-                                Text("Unidad de medida:", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                                        Text("Unidad de medida:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(top = 4.dp)) {
                                     items(listOf("Kg", "Litros", "Unidades")) { u ->
-                                        FilterChip(selected = unidad == u, onClick = { unidad = u }, label = { Text(u) })
+                                        FilterChip(
+                                            selected = unidad == u, 
+                                            onClick = { unidad = u }, 
+                                            label = { Text(u) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                        )
                                     }
                                 }
-                            }
 
                             Button(
                                 onClick = {
@@ -118,7 +124,7 @@ fun GestionInventarioScreen(
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 shape = RoundedCornerShape(12.dp)
                             ) { Text("Guardar Insumo") }
                         }
@@ -131,7 +137,7 @@ fun GestionInventarioScreen(
                 val colorEstado = when {
                     insumo.cantidadActual <= 0 -> Color.Red
                     insumo.cantidadActual <= insumo.cantidadMinima -> Color(0xFFD97706)
-                    else -> Color(0xFF10B981)
+                    else -> MaterialTheme.colorScheme.secondary
                 }
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable {
@@ -139,7 +145,7 @@ fun GestionInventarioScreen(
                         editCant = insumo.cantidadActual.toString()
                         editMin = insumo.cantidadMinima.toString()
                     },
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     elevation = CardDefaults.cardElevation(1.dp),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -147,8 +153,8 @@ fun GestionInventarioScreen(
                         Box(modifier = Modifier.size(10.dp).background(colorEstado, CircleShape))
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(insumo.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                            Text("Mínimo: ${insumo.cantidadMinima} ${insumo.unidadMedida}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Text(insumo.nombre, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Mínimo: ${insumo.cantidadMinima} ${insumo.unidadMedida}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Text("${insumo.cantidadActual} ${insumo.unidadMedida}", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Black, color = colorEstado)
                     }
@@ -158,8 +164,8 @@ fun GestionInventarioScreen(
 
         FloatingActionButton(
             onClick = { mostrarFormularioCrear = !mostrarFormularioCrear },
-            containerColor = Color(0xFF1E233D),
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp)
@@ -172,10 +178,11 @@ fun GestionInventarioScreen(
         AlertDialog(
             onDismissRequest = { insumoSeleccionado = null },
             shape = RoundedCornerShape(28.dp),
-            title = { Text("Gestionar Insumo", fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Gestionar Insumo", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(insumoSeleccionado?.nombre ?: "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(insumoSeleccionado?.nombre ?: "", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     OutlinedTextField(value = editCant, onValueChange = { editCant = it }, label = { Text("Cantidad actual") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                     OutlinedTextField(value = editMin, onValueChange = { editMin = it }, label = { Text("Stock mínimo") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                 }
@@ -187,7 +194,7 @@ fun GestionInventarioScreen(
                         val m = editMin.toDoubleOrNull() ?: 0.0
                         viewModel.guardarInsumo(insumoSeleccionado!!.copy(cantidadActual = c, cantidadMinima = m)) { if (it) insumoSeleccionado = null }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) { Text("Guardar Cambios") }
             },
             dismissButton = {

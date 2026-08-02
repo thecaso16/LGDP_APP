@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.CajaViewModel
+import androidx.compose.foundation.isSystemInDarkTheme
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
@@ -75,7 +76,7 @@ fun CuadreCajaScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     fun exportarCierrePDF() {
-        val generator = com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator(context)
+        val generator = PdfReportGenerator(context)
         generator.startNewPage("Reporte de Cierre de Caja")
         
         generator.addLabeledText("Fecha:", dateFormat.format(Date()))
@@ -127,7 +128,7 @@ fun CuadreCajaScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -140,12 +141,12 @@ fun CuadreCajaScreen(
                     text = "Gestión de Caja",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF1E233D)
+                    color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(Modifier.height(4.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E233D).copy(alpha = 0.05f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -153,11 +154,11 @@ fun CuadreCajaScreen(
                             text = "Estado: ${if(estaAbierta) "CAJA ABIERTA" else "CAJA CERRADA"}", 
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold, 
-                            color = if(estaAbierta) Color(0xFF10B981) else Color.Red
+                            color = if(estaAbierta) MaterialTheme.colorScheme.secondary else Color.Red
                         )
                         if (estaAbierta) {
-                            Text(text = "Responsable: ${cajaSesion?.nombreCajero}", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-                            Text(text = "Apertura: ${timeFormat.format(Date(cajaSesion!!.fechaApertura))}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Text(text = "Responsable: ${cajaSesion?.nombreCajero}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                            Text(text = "Apertura: ${timeFormat.format(Date(cajaSesion!!.fechaApertura))}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -165,10 +166,10 @@ fun CuadreCajaScreen(
 
             if (!estaAbierta) {
                 item {
-                    Text(text = "Apertura de Turno", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
+                    Text(text = "Apertura de Turno", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
-                        colors = CardDefaults.cardColors(containerColor = Color.White), 
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), 
                         shape = RoundedCornerShape(16.dp), 
                         elevation = CardDefaults.cardElevation(2.dp)
                     ) {
@@ -186,14 +187,14 @@ fun CuadreCajaScreen(
                                     onClick = { viewModel.abrirCaja() },
                                     enabled = montoAperturaInput.isNotBlank(),
                                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D)),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                     shape = RoundedCornerShape(12.dp)
                                 ) { Text("Abrir Caja", fontWeight = FontWeight.Bold) }
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
-                                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color.Gray)
+                                    Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Solo un cajero puede realizar la apertura.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                                    Text("Solo un cajero puede realizar la apertura.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -205,8 +206,8 @@ fun CuadreCajaScreen(
                 val puedeCerrar = esElCajeroResponsable || esAdmin
 
                 item {
-                    Text(text = "1. Configuración de Caja", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
-                    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+                    Text(text = "1. Configuración de Caja", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             OutlinedTextField(
                                 value = String.format(locale, "S/. %.2f", cajaSesion!!.montoApertura),
@@ -243,26 +244,26 @@ fun CuadreCajaScreen(
                 }
 
                 item {
-                    Text(text = "2. Resumen de Ventas", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
-                    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+                    Text(text = "2. Resumen de Ventas", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             FilaResumenCaja("Ventas en Efectivo", efectivo, locale)
                             FilaResumenCaja("Ventas Billetera Digital", billeteraDigital, locale)
                             FilaResumenCaja("Ventas Izipay", izipay, locale)
-                            HorizontalDivider(color = Color(0xFFF1F5F9))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Total registrado", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
-                                Text(String.format(locale, "S/. %.2f", totalSistema), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = Color(0xFF1E233D))
+                                Text("Total registrado", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+                                Text(String.format(locale, "S/. %.2f", totalSistema), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
                 }
 
                 item {
-                    Text(text = "3. Verificación de Efectivo", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = Color.Gray)
-                    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = Color.White), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
+                    Text(text = "3. Verificación de Efectivo", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Card(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(2.dp)) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text(text = "¿Cuál es el monto físico real en caja?", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF475569))
+                            Text(text = "¿Cuál es el monto físico real en caja?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                             OutlinedTextField(
                                 value = montoRealInput,
                                 onValueChange = { if(puedeCerrar) viewModel.montoRealFisico.value = it },
@@ -274,13 +275,13 @@ fun CuadreCajaScreen(
                             )
                             if (diferencia != 0.0 && montoRealInput.isNotBlank()) {
                                 Surface(
-                                    color = Color(0xFF3B82F6).copy(alpha = 0.1f),
+                                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.fillMaxWidth().clickable(enabled = puedeCerrar) { mostrarDialogoJustificacion = true }
                                 ) {
                                     Text(
                                         text = if (justificacionDescuadre.isBlank()) "Diferencia detectada (S/. ${String.format(locale, "%.2f", diferencia)}). Toca para justificar." else "Justificación registrada correctamente.",
-                                        color = Color(0xFF1D4ED8), 
+                                        color = MaterialTheme.colorScheme.secondary, 
                                         style = MaterialTheme.typography.bodySmall, 
                                         fontWeight = FontWeight.Bold, 
                                         textAlign = TextAlign.Center, 
@@ -298,7 +299,7 @@ fun CuadreCajaScreen(
                             Button(
                                 onClick = { exportarCierrePDF() },
                                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                                 shape = RoundedCornerShape(12.dp)
                             ) { 
                                 Icon(Icons.Default.PictureAsPdf, null)
@@ -322,7 +323,7 @@ fun CuadreCajaScreen(
                                           (egresosDouble == 0.0 || justificacionEgresos.isNotBlank()),
                                 modifier = Modifier.fillMaxWidth().height(52.dp),
                                 shape = RoundedCornerShape(26.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) { Text("Finalizar Turno", fontWeight = FontWeight.Bold) }
                         }
                     }
@@ -336,7 +337,8 @@ fun CuadreCajaScreen(
     if (mostrarDialogoJustificacion) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoJustificacion = false },
-            title = { Text("Justificar Descuadre") },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = { Text("Justificar Descuadre", color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 OutlinedTextField(
                     value = justificacionDescuadre,
@@ -350,7 +352,7 @@ fun CuadreCajaScreen(
             confirmButton = { 
                 Button(
                     onClick = { mostrarDialogoJustificacion = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E233D))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) { Text("Guardar Justificación") } 
             }
         )
@@ -360,7 +362,7 @@ fun CuadreCajaScreen(
 @Composable
 fun FilaResumenCaja(concepto: String, monto: Double, locale: Locale) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(text = concepto, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF64748B))
-        Text(text = String.format(locale, "S/. %.2f", monto), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = Color(0xFF1E233D))
+        Text(text = concepto, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = String.format(locale, "S/. %.2f", monto), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
     }
 }

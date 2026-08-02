@@ -1,5 +1,6 @@
 package com.lasgalletasdepau.lgdp_app.ui.main
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -20,6 +21,7 @@ import com.lasgalletasdepau.lgdp_app.ui.admin.DesempenoPedidosScreen
 import com.lasgalletasdepau.lgdp_app.ui.admin.GestionCatalogoScreen
 import com.lasgalletasdepau.lgdp_app.ui.admin.GestionUsuariosScreen
 import com.lasgalletasdepau.lgdp_app.ui.admin.ReportesNegocioScreen
+import com.lasgalletasdepau.lgdp_app.ui.theme.NavyBrand
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.CajaViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,8 +54,11 @@ fun AdminContainerScreen(
                         }
                         Spacer(Modifier.width(12.dp))
                         Column {
+                            val nombreCompleto = listOfNotNull(user?.nombres, user?.apellidos)
+                                .joinToString(" ")
+                                .ifBlank { "Usuario" }
                             Text(
-                                text = if (user != null) "${user?.nombres} ${user?.apellidos}" else "Cerrando sesión...",
+                                text = if (user != null) nombreCompleto else "Cerrando sesión...",
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
@@ -73,12 +78,12 @@ fun AdminContainerScreen(
                         Icon(Icons.AutoMirrored.Filled.Logout, "Cerrar Sesión", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E233D))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = NavyBrand)
             )
         },
         bottomBar = {
             NavigationBar(
-                containerColor = Color(0xFF1E233D),
+                containerColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surface else NavyBrand,
                 contentColor = Color.White,
                 tonalElevation = 8.dp
             ) {
@@ -88,9 +93,9 @@ fun AdminContainerScreen(
                     icon = { Icon(Icons.Default.Badge, contentDescription = "Personal") },
                     label = { Text("Personal") },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF1E233D),
+                        selectedIconColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color.White,
                         selectedTextColor = Color.White,
-                        indicatorColor = Color.White,
+                        indicatorColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.2f),
                         unselectedIconColor = Color.White.copy(alpha = 0.6f),
                         unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )
@@ -101,35 +106,22 @@ fun AdminContainerScreen(
                     icon = { Icon(Icons.Default.RestaurantMenu, contentDescription = "Catálogo") },
                     label = { Text("Catálogo") },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF1E233D),
+                        selectedIconColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color.White,
                         selectedTextColor = Color.White,
-                        indicatorColor = Color.White,
+                        indicatorColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.2f),
                         unselectedIconColor = Color.White.copy(alpha = 0.6f),
                         unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )
                 )
-                /* NavigationBarItem(
-                    selected = pantallaActual == 2,
-                    onClick = { pantallaActual = 2 },
-                    icon = { Icon(Icons.Default.Inventory, contentDescription = "Insumos") },
-                    label = { Text("Insumos") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF1E233D),
-                        selectedTextColor = Color.White,
-                        indicatorColor = Color.White,
-                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.6f)
-                    )
-                ) */
                 NavigationBarItem(
                     selected = pantallaActual == 3,
                     onClick = { pantallaActual = 3 },
                     icon = { Icon(Icons.Default.Analytics, contentDescription = "Negocio") },
                     label = { Text("Negocio") },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF1E233D),
+                        selectedIconColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color.White,
                         selectedTextColor = Color.White,
-                        indicatorColor = Color.White,
+                        indicatorColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.2f),
                         unselectedIconColor = Color.White.copy(alpha = 0.6f),
                         unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )
@@ -140,9 +132,9 @@ fun AdminContainerScreen(
                     icon = { Icon(Icons.Default.Leaderboard, contentDescription = "Desempeño") },
                     label = { Text("Desempeño") },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF1E233D),
+                        selectedIconColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary else Color.White,
                         selectedTextColor = Color.White,
-                        indicatorColor = Color.White,
+                        indicatorColor = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.2f),
                         unselectedIconColor = Color.White.copy(alpha = 0.6f),
                         unselectedTextColor = Color.White.copy(alpha = 0.6f)
                     )

@@ -90,6 +90,17 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
         _notasGlobales.value = ""
     }
 
+    fun cancelarPedido(mesaId: Int?) {
+        viewModelScope.launch {
+            // Si es un pedido nuevo (no estamos editando uno existente) y hay una mesa, la liberamos
+            if (pedidoExistenteId == null && mesaId != null) {
+                appDao.liberarMesa(mesaId)
+                syncManager.sincronizarTodo()
+            }
+            limpiarCarrito()
+        }
+    }
+
     fun cargarPedidoParaEdicion(mesaId: Int? = null, pedidoId: String? = null) {
         viewModelScope.launch {
             val pedido = if (pedidoId != null) {
@@ -178,6 +189,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
             val total = _carrito.value.values.sumOf { it.cantidad * it.precioUnitario }
 
             val cajaAbierta = appDao.obtenerCajaAbiertaSync()
+            val ahora = System.currentTimeMillis()
 
             val pedidoActual = if (pedidoExistenteId != null) {
                 val pExistente = appDao.obtenerPedidoPorId(idFinal)
@@ -190,10 +202,28 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     sincronizado = false
                 )
             } else {
+                // Lógica para número correlativo diario
+                val calendar = Calendar.getInstance().apply {
+                    timeInMillis = ahora
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val inicioDia = calendar.timeInMillis
+                calendar.set(Calendar.HOUR_OF_DAY, 23)
+                calendar.set(Calendar.MINUTE, 59)
+                calendar.set(Calendar.SECOND, 59)
+                calendar.set(Calendar.MILLISECOND, 999)
+                val finDia = calendar.timeInMillis
+
+                val ultimoNumero = appDao.obtenerUltimoNumeroPedidoDelDia(inicioDia, finDia) ?: 0
+                val siguienteNumero = ultimoNumero + 1
+
                 PedidoEntity(
                     pedidoId = idFinal,
-                    numeroPedido = (System.currentTimeMillis() % 10000).toInt(),
-                    fecha = System.currentTimeMillis(),
+                    numeroPedido = siguienteNumero,
+                    fecha = ahora,
                     estado = EstadoPedido.PENDIENTE,
                     tipoPedido = if (mesaId != null) TipoPedido.EN_MESA else TipoPedido.PARA_LLEVAR,
                     mesaId = mesaId,
