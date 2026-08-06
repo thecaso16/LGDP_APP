@@ -1,6 +1,0 @@
-- [ ] Eliminar colores hardcoded en `OutlinedTextField` (todas las pantallas)
-- [ ] Corregir visibilidad de botones de texto en diálogos (Aceptar, Cancelar, Continuar)
-- [ ] Ajustar contraste en `CabeceraInformacion` de `PedidoScreen`
-- [ ] Corregir color de etiquetas de "Total" en `DetalleMesaScreen` y `CuadreCajaScreen`
-- [ ] Refinar `DarkColorScheme` para reducir fatiga visual por azul
-- [ ] Verificar legibilidad del Calendario/DatePicker
