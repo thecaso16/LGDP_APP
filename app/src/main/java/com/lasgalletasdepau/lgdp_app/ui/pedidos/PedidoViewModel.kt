@@ -4,9 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
-import com.lasgalletasdepau.lgdp_app.data.local.entity.*
-import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
-import com.lasgalletasdepau.lgdp_app.domain.model.TipoPedido
+import com.lasgalletasdepau.lgdp_app.data.remote.SyncManager
+import com.lasgalletasdepau.lgdp_app.data.repository.PedidoRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.data.repository.ProductoRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.data.repository.UsuarioRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.domain.model.*
+import com.lasgalletasdepau.lgdp_app.domain.repository.PedidoRepository
+import com.lasgalletasdepau.lgdp_app.domain.repository.ProductoRepository
+import com.lasgalletasdepau.lgdp_app.domain.repository.UsuarioRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -15,22 +20,25 @@ import java.util.*
 class PedidoViewModel(application: Application) : AndroidViewModel(application) {
 
     private val appDao = AppDatabase.getDatabase(application).appDao()
-    private val syncManager = com.lasgalletasdepau.lgdp_app.data.remote.SyncManager.getInstance(application)
+    private val syncManager = SyncManager.getInstance(application)
+    private val usuarioRepository: UsuarioRepository = UsuarioRepositoryImpl(appDao)
+    private val pedidoRepository: PedidoRepository = PedidoRepositoryImpl(appDao, syncManager, usuarioRepository)
+    private val productoRepository: ProductoRepository = ProductoRepositoryImpl(appDao, syncManager)
 
     // Observar al usuario de forma reactiva
-    val usuarioLogueado: StateFlow<UsuarioEntity?> = appDao.obtenerUsuarioLogueado()
+    val usuarioLogueado: StateFlow<Usuario?> = usuarioRepository.obtenerUsuarioLogueado()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // Categorías y Productos
-    val categorias: StateFlow<List<CategoriaEntity>> = appDao.obtenerCategorias()
+    val categorias: StateFlow<List<Categoria>> = productoRepository.obtenerCategorias()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val productos: StateFlow<List<ProductoEntity>> = appDao.obtenerProductos()
+    val productos: StateFlow<List<Producto>> = productoRepository.obtenerProductos()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Carrito: productId -> PedidoDetalleEntity
-    private val _carrito = MutableStateFlow<Map<String, PedidoDetalleEntity>>(emptyMap())
-    val carrito: StateFlow<Map<String, PedidoDetalleEntity>> = _carrito
+    // Carrito: productId -> PedidoDetalle
+    private val _carrito = MutableStateFlow<Map<String, PedidoDetalle>>(emptyMap())
+    val carrito: StateFlow<Map<String, PedidoDetalle>> = _carrito
 
     private val _notasGlobales = MutableStateFlow("")
     val notasGlobales: StateFlow<String> = _notasGlobales
@@ -63,7 +71,7 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             while(true) {
                 try {
-                    syncManager.sincronizarPedidosYEstado()
+                    pedidoRepository.sincronizarPedidosYEstado()
                     val user = usuarioLogueado.value
                     if (user != null) {
                         actualizarPedidosActivos(user)
@@ -74,12 +82,12 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private suspend fun actualizarPedidosActivos(user: UsuarioEntity) {
+    private suspend fun actualizarPedidosActivos(user: Usuario) {
         // Por defecto mozos solo ven sus pedidos activos. 
-        // Si se requiere que vean todos, cambiar verTodo a 1.
-        val lista = appDao.obtenerPedidosActivos(user.uid, 0)
+        // Si se requiere que vean todos, cambiar verTodo a false.
+        val lista = pedidoRepository.obtenerPedidosActivos(user.id, false)
         val resultado = lista.map { pedido ->
-            PedidoConDetalles(pedido, appDao.obtenerDetallesPorPedido(pedido.pedidoId))
+            PedidoConDetalles(pedido, pedido.detalles)
         }
         _pedidosActivos.value = resultado
     }
@@ -94,8 +102,8 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             // Si es un pedido nuevo (no estamos editando uno existente) y hay una mesa, la liberamos
             if (pedidoExistenteId == null && mesaId != null) {
-                appDao.liberarMesa(mesaId)
-                syncManager.sincronizarTodo()
+                pedidoRepository.liberarMesa(mesaId)
+                pedidoRepository.sincronizarPedidosYEstado()
             }
             limpiarCarrito()
         }
@@ -104,26 +112,24 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
     fun cargarPedidoParaEdicion(mesaId: Int? = null, pedidoId: String? = null) {
         viewModelScope.launch {
             val pedido = if (pedidoId != null) {
-                appDao.obtenerPedidoPorId(pedidoId)
+                pedidoRepository.obtenerPedidoPorId(pedidoId)
             } else if (mesaId != null) {
-                appDao.obtenerPedidoActivoPorMesa(mesaId)
+                pedidoRepository.obtenerPedidoActivoPorMesa(mesaId)
             } else null
 
             if (pedido != null) {
                 pedidoExistenteId = pedido.pedidoId
-                val detalles = appDao.obtenerDetallesPorPedido(pedido.pedidoId)
-                
-                val nuevoCarrito = detalles.associateBy({ it.productoId ?: UUID.randomUUID().toString() }, { it })
+                val nuevoCarrito = pedido.detalles.associateBy({ it.productoId ?: UUID.randomUUID().toString() }, { it })
                 _carrito.value = nuevoCarrito
                 _notasGlobales.value = pedido.notas ?: ""
             }
         }
     }
 
-    fun agregarProducto(producto: ProductoEntity) {
+    fun agregarProducto(producto: Producto) {
         viewModelScope.launch {
             val currentCarrito = _carrito.value.toMutableMap()
-            val detalleExistente = currentCarrito[producto.productoId]
+            val detalleExistente = currentCarrito[producto.id]
             val nuevaCantidad = (detalleExistente?.cantidad ?: 0) + 1
 
             if (producto.controlaStock) {
@@ -132,9 +138,9 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     return@launch
                 }
             } else {
-                val relaciones = appDao.obtenerInsumosPorProducto(producto.productoId)
+                val relaciones = productoRepository.obtenerInsumosPorProducto(producto.id)
                 if (relaciones.isNotEmpty()) {
-                    val todosInsumos = appDao.obtenerInsumos().first()
+                    val todosInsumos = productoRepository.obtenerInsumos().first()
                     for (rel in relaciones) {
                         val insumo = todosInsumos.find { it.id == rel.insumoId }
                         if (insumo != null) {
@@ -149,11 +155,10 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
             }
 
             if (detalleExistente != null) {
-                currentCarrito[producto.productoId] = detalleExistente.copy(cantidad = nuevaCantidad)
+                currentCarrito[producto.id] = detalleExistente.copy(cantidad = nuevaCantidad)
             } else {
-                currentCarrito[producto.productoId] = PedidoDetalleEntity(
-                    pedidoId = pedidoExistenteId ?: "", 
-                    productoId = producto.productoId,
+                currentCarrito[producto.id] = PedidoDetalle(
+                    productoId = producto.id,
                     nombreProducto = producto.nombre,
                     cantidad = 1,
                     precioUnitario = producto.precio,
@@ -188,39 +193,23 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
             val idFinal = pedidoExistenteId ?: UUID.randomUUID().toString()
             val total = _carrito.value.values.sumOf { it.cantidad * it.precioUnitario }
 
-            val cajaAbierta = appDao.obtenerCajaAbiertaSync()
+            val cajaAbierta = pedidoRepository.obtenerCajaAbierta().first()
             val ahora = System.currentTimeMillis()
 
             val pedidoActual = if (pedidoExistenteId != null) {
-                val pExistente = appDao.obtenerPedidoPorId(idFinal)
+                val pExistente = pedidoRepository.obtenerPedidoPorId(idFinal)
                 pExistente?.copy(
                     total = total,
-                    usuarioId = pExistente.usuarioId ?: user?.uid,
+                    usuarioId = pExistente.usuarioId ?: user?.id,
                     usuarioNombre = pExistente.usuarioNombre ?: "${user?.nombres} ${user?.apellidos}",
                     notas = _notasGlobales.value,
                     cajaId = cajaAbierta?.cajaId,
-                    sincronizado = false
+                    detalles = _carrito.value.values.toList()
                 )
             } else {
-                // Lógica para número correlativo diario
-                val calendar = Calendar.getInstance().apply {
-                    timeInMillis = ahora
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-                val inicioDia = calendar.timeInMillis
-                calendar.set(Calendar.HOUR_OF_DAY, 23)
-                calendar.set(Calendar.MINUTE, 59)
-                calendar.set(Calendar.SECOND, 59)
-                calendar.set(Calendar.MILLISECOND, 999)
-                val finDia = calendar.timeInMillis
+                val siguienteNumero = pedidoRepository.obtenerUltimoNumeroPedidoDelDia() + 1
 
-                val ultimoNumero = appDao.obtenerUltimoNumeroPedidoDelDia(inicioDia, finDia) ?: 0
-                val siguienteNumero = ultimoNumero + 1
-
-                PedidoEntity(
+                Pedido(
                     pedidoId = idFinal,
                     numeroPedido = siguienteNumero,
                     fecha = ahora,
@@ -230,26 +219,27 @@ class PedidoViewModel(application: Application) : AndroidViewModel(application) 
                     metodoPago = null,
                     nombreCliente = clienteNombre,
                     total = total,
-                    usuarioId = user?.uid,
+                    usuarioId = user?.id,
                     usuarioNombre = "${user?.nombres} ${user?.apellidos}",
                     notas = _notasGlobales.value,
                     cajaId = cajaAbierta?.cajaId,
-                    sincronizado = false
+                    detalles = _carrito.value.values.toList()
                 )
             }
 
             if (pedidoActual != null) {
-                appDao.insertarPedido(pedidoActual)
-                appDao.eliminarDetallesPorPedido(idFinal)
-                val detalles = _carrito.value.values.map { it.copy(pedidoId = idFinal) }
-                appDao.insertarDetallesPedido(detalles)
+                if (pedidoExistenteId != null) {
+                    pedidoRepository.actualizarPedido(pedidoActual)
+                } else {
+                    pedidoRepository.crearPedido(pedidoActual)
+                }
 
                 if (mesaId != null && clienteNombre != null && pedidoExistenteId == null) {
-                    appDao.marcarMesaOcupada(mesaId, clienteNombre)
+                    pedidoRepository.marcarMesaOcupada(mesaId, clienteNombre)
                 }
             }
 
-            syncManager.sincronizarTodo()
+            pedidoRepository.sincronizarPedidosYEstado()
             limpiarCarrito()
             onCompletado()
         }

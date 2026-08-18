@@ -4,7 +4,6 @@ import androidx.room.TypeConverter
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoMesa
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
 import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
-import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
 import com.lasgalletasdepau.lgdp_app.domain.model.TipoPedido
 
 class AppConverters {

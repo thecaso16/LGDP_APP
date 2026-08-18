@@ -4,19 +4,16 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
-import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoDetalleEntity
-import com.lasgalletasdepau.lgdp_app.data.local.entity.PedidoEntity
-import com.lasgalletasdepau.lgdp_app.data.local.entity.UsuarioEntity
-import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
+import com.lasgalletasdepau.lgdp_app.data.remote.SyncManager
+import com.lasgalletasdepau.lgdp_app.data.repository.PedidoRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.data.repository.UsuarioRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.domain.model.*
+import com.lasgalletasdepau.lgdp_app.domain.repository.PedidoRepository
+import com.lasgalletasdepau.lgdp_app.domain.repository.UsuarioRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-
-data class PedidoConDetalles(
-    val pedido: PedidoEntity,
-    val detalles: List<PedidoDetalleEntity>
-)
 
 enum class ModoHistorial {
     TURNO_ACTUAL,
@@ -25,10 +22,12 @@ enum class ModoHistorial {
 
 class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel(application) {
     private val appDao = AppDatabase.getDatabase(application).appDao()
-    private val syncManager = com.lasgalletasdepau.lgdp_app.data.remote.SyncManager.getInstance(application)
+    private val syncManager = SyncManager.getInstance(application)
+    private val usuarioRepository: UsuarioRepository = UsuarioRepositoryImpl(appDao)
+    private val pedidoRepository: PedidoRepository = PedidoRepositoryImpl(appDao, syncManager, usuarioRepository)
 
     // Observar al usuario de forma reactiva
-    val usuarioLogueado: StateFlow<UsuarioEntity?> = appDao.obtenerUsuarioLogueado()
+    val usuarioLogueado: StateFlow<Usuario?> = usuarioRepository.obtenerUsuarioLogueado()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _modo = MutableStateFlow(ModoHistorial.TURNO_ACTUAL)
@@ -47,10 +46,10 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
     fun cargarPedidosTurnoActual() {
         val user = usuarioLogueado.value ?: return
         viewModelScope.launch {
-            val sesion = appDao.obtenerCajaAbiertaSync()
+            val sesion = pedidoRepository.obtenerCajaAbierta().first()
             if (sesion != null) {
-                // Durante el turno actual, todos ven todos los pedidos (verTodo = 1)
-                actualizarHistorialLocal(user.uid, sesion.fechaApertura, System.currentTimeMillis() + 86400000, verTodoManual = 1)
+                // Durante el turno actual, todos ven todos los pedidos (verTodo = true)
+                actualizarHistorialLocal(user.id, sesion.fechaApertura, System.currentTimeMillis() + 86400000, verTodoManual = true)
             } else {
                 _historial.value = emptyList()
             }
@@ -68,7 +67,7 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
      */
     fun esCajeroResponsable(cajeroIdEnCaja: String?): Boolean {
         val user = usuarioLogueado.value ?: return false
-        return user.uid == cajeroIdEnCaja
+        return user.id == cajeroIdEnCaja
     }
 
     fun buscarPorRango(fechaInicioStr: String, fechaFinStr: String) {
@@ -96,28 +95,27 @@ class ReportesTrabajadoresViewModel(application: Application) : AndroidViewModel
                 }
 
                 // 1. Mostrar datos locales inmediatamente con el UID correcto
-                actualizarHistorialLocal(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
+                actualizarHistorialLocal(user.id, calInicio.timeInMillis, calFin.timeInMillis)
 
                 // 2. Descargar historial de Firebase filtrado por este usuario
-                syncManager.bajarHistorialRango(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
+                pedidoRepository.bajarHistorialRango(user.id, calInicio.timeInMillis, calFin.timeInMillis)
 
                 // 3. Refrescar datos locales
-                actualizarHistorialLocal(user.uid, calInicio.timeInMillis, calFin.timeInMillis)
+                actualizarHistorialLocal(user.id, calInicio.timeInMillis, calFin.timeInMillis)
             } catch (e: Exception) {
                 // Mantener estado actual en caso de error
             }
         }
     }
 
-    private suspend fun actualizarHistorialLocal(uid: String, inicio: Long, fin: Long, verTodoManual: Int? = null) {
-        // Para este reporte, permitimos ver toda la actividad del negocio (verTodo = 1)
+    private suspend fun actualizarHistorialLocal(uid: String, inicio: Long, fin: Long, verTodoManual: Boolean? = null) {
+        // Para este reporte, permitimos ver toda la actividad del negocio (verTodo = true)
         // ya que los trabajadores necesitan ver pedidos de otros compañeros en la misma caja.
-        val verTodo = verTodoManual ?: 1
+        val verTodo = verTodoManual ?: true
         
-        val pedidos = appDao.obtenerPedidosHistorial(uid, inicio, fin, verTodo)
+        val pedidos = pedidoRepository.obtenerPedidosHistorial(uid, inicio, fin, verTodo)
         val resultado = pedidos.map { pedido ->
-            val detalles = appDao.obtenerDetallesPorPedido(pedido.pedidoId)
-            PedidoConDetalles(pedido, detalles)
+            PedidoConDetalles(pedido, pedido.detalles)
         }
         _historial.value = resultado
     }

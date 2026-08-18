@@ -1,5 +1,6 @@
 package com.lasgalletasdepau.lgdp_app.domain.model
 
+import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

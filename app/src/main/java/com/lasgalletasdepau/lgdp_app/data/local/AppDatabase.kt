@@ -21,7 +21,7 @@ import com.lasgalletasdepau.lgdp_app.data.local.entity.*
         InsumoEntity::class,
         ProductoInsumoEntity::class
     ],
-    version = 15, // Incrementado para numeración correlativa diaria
+    version = 15,
     exportSchema = false
 )
 @TypeConverters(AppConverters::class)

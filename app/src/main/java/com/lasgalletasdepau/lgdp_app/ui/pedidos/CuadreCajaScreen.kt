@@ -201,7 +201,7 @@ fun CuadreCajaScreen(
                     }
                 }
             } else {
-                val esElCajeroResponsable = user?.uid == cajaSesion?.usuarioCajeroId
+                val esElCajeroResponsable = user?.id == cajaSesion?.usuarioCajeroId
                 val esAdmin = user?.rol?.contains("Administrador") == true
                 val puedeCerrar = esElCajeroResponsable || esAdmin
 

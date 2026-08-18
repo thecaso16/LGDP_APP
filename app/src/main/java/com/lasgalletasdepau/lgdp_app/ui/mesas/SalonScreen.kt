@@ -20,11 +20,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.lasgalletasdepau.lgdp_app.data.local.entity.MesaEntity
+import com.lasgalletasdepau.lgdp_app.domain.model.Mesa
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoMesa
-import com.lasgalletasdepau.lgdp_app.ui.mesas.SalonViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,7 +39,7 @@ fun SalonScreen(
 
     var mostrarDialogoApertura by remember { mutableStateOf(false) }
     var mostrarDialogoLlevar by remember { mutableStateOf(false) }
-    var mesaSeleccionadaParaAbrir by remember { mutableStateOf<MesaEntity?>(null) }
+    var mesaSeleccionadaParaAbrir by remember { mutableStateOf<Mesa?>(null) }
     var nombreClienteInput by remember { mutableStateOf("") }
     
     val snackbarHostState = remember { SnackbarHostState() }
@@ -248,7 +246,7 @@ fun SalonScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ItemMesa(mesa: MesaEntity, onClickMesa: () -> Unit) {
+fun ItemMesa(mesa: Mesa, onClickMesa: () -> Unit) {
     val estaOcupada = mesa.estado == EstadoMesa.OCUPADA
     val nombreMesa = if (mesa.numero.contains("Mesa", ignoreCase = true)) mesa.numero else "Mesa ${mesa.numero}"
     

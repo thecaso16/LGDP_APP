@@ -24,12 +24,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
-import com.lasgalletasdepau.lgdp_app.ui.admin.DesempenoPedidosViewModel
-import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoConDetalles
+import com.lasgalletasdepau.lgdp_app.domain.model.PedidoConDetalles
 import androidx.compose.foundation.isSystemInDarkTheme
 import java.io.File
 import java.io.FileOutputStream

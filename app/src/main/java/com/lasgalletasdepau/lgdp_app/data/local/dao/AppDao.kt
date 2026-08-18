@@ -2,6 +2,7 @@ package com.lasgalletasdepau.lgdp_app.data.local.dao
 
 import androidx.room.*
 import com.lasgalletasdepau.lgdp_app.data.local.entity.*
+import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -71,13 +72,13 @@ interface AppDao {
     suspend fun liberarMesa(mesaId: Int)
 
     @Query("UPDATE pedidos SET estado = :nuevoEstado, metodoPago = :metodo, fecha = :fechaPago, sincronizado = 0 WHERE pedidoId = :pedidoId")
-    suspend fun actualizarEstadoPedido(pedidoId: String, nuevoEstado: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago?, fechaPago: Long)
+    suspend fun actualizarEstadoPedido(pedidoId: String, nuevoEstado: String, metodo: MetodoPago?, fechaPago: Long)
 
     @Query("UPDATE pedidos SET estado = 'CANCELADO', notas = :justificacion, sincronizado = 0 WHERE pedidoId = :pedidoId")
     suspend fun anularPedido(pedidoId: String, justificacion: String)
 
     @Transaction
-    suspend fun finalizarVenta(pedidoId: String, metodo: com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago, mesaId: Int?) {
+    suspend fun finalizarVenta(pedidoId: String, metodo: MetodoPago, mesaId: Int?) {
         val ahora = System.currentTimeMillis()
         actualizarEstadoPedido(pedidoId, "PAGADO", metodo, ahora)
         val detalles = obtenerDetallesPorPedido(pedidoId)
@@ -164,7 +165,7 @@ interface AppDao {
     @Query("SELECT * FROM caja_detalles WHERE cajaId = :cajaId")
     suspend fun obtenerCajaDetalle(cajaId: String): CajaDetalleEntity?
 
-    @Query("DELETE FROM caja_sesiones")
+    @Query("DELETE FROM caja_sesiones WHERE estado = 'ABIERTA' OR sincronizado = 1")
     suspend fun limpiarSesionesLocales()
 
     @Query("DELETE FROM caja_detalles")

@@ -11,7 +11,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
@@ -24,10 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.domain.model.Usuario
-import com.lasgalletasdepau.lgdp_app.ui.admin.GestionUsuariosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -133,7 +130,17 @@ fun GestionUsuariosScreen(
 
                             Button(
                                 onClick = {
-                                    val u = Usuario(nombres = nuevoNombres, apellidos = nuevoApellidos, dni = nuevoDni, email = nuevoEmail)
+                                    val u = Usuario(
+                                        id = "",
+                                        nombres = nuevoNombres,
+                                        apellidos = nuevoApellidos,
+                                        dni = nuevoDni,
+                                        email = nuevoEmail,
+                                        rol = "",
+                                        activo = true,
+                                        creadoEn = null,
+                                        ultimaModificacion = null
+                                    )
                                     viewModel.crearNuevoUsuarioConAuth(u, nuevaContrasena, rolesSeleccionados.toList()) { if (it) { 
                                         nuevoNombres = ""; nuevoApellidos = ""; nuevoDni = ""; nuevoEmail = ""; nuevaContrasena = ""; mostrarFormularioCrear = false 
                                     } }

@@ -1,17 +1,16 @@
 package com.lasgalletasdepau.lgdp_app.ui.admin
 
-import android.util.Log
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.Timestamp
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
-import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
+import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
+import com.lasgalletasdepau.lgdp_app.data.remote.SyncManager
+import com.lasgalletasdepau.lgdp_app.data.repository.PedidoRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.data.repository.UsuarioRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.domain.repository.PedidoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import java.util.*
 
 data class ProductoEstadistica(
     val nombre: String,
@@ -19,8 +18,11 @@ data class ProductoEstadistica(
     val porcentaje: Float
 )
 
-class ReportesNegocioViewModel : ViewModel() {
-    private val firestore = FirebaseFirestore.getInstance()
+class ReportesNegocioViewModel(application: Application) : AndroidViewModel(application) {
+    private val appDao = AppDatabase.getDatabase(application).appDao()
+    private val syncManager = SyncManager.getInstance(application)
+    private val usuarioRepo = UsuarioRepositoryImpl(appDao)
+    private val pedidoRepository: PedidoRepository = PedidoRepositoryImpl(appDao, syncManager, usuarioRepo)
 
     private val _totalIngresos = MutableStateFlow(0.0)
     val totalIngresos: StateFlow<Double> = _totalIngresos
@@ -57,71 +59,14 @@ class ReportesNegocioViewModel : ViewModel() {
             _isLoading.value = true
             _error.value = null
             try {
-                val calInicio = Calendar.getInstance().apply {
-                    timeInMillis = fechaInicioMillis
-                    set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
-                }
-                val calFin = Calendar.getInstance().apply {
-                    timeInMillis = fechaFinMillis
-                    set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59); set(Calendar.SECOND, 59); set(Calendar.MILLISECOND, 999)
-                }
-
-                // 1. Obtener todos los productos del catálogo para identificar los no vendidos
-                val snapshotCatalogo = firestore.collection("productos").get().await()
-                val todosLosProductos = snapshotCatalogo.documents.associate { 
-                    it.id to (it.getString("nombre") ?: "Desconocido")
-                }
-
-                // 2. Obtener pedidos en el rango
-                val snapshotPedidos = firestore.collection("pedidos")
-                    .whereGreaterThanOrEqualTo("fecha", Timestamp(calInicio.time))
-                    .whereLessThanOrEqualTo("fecha", Timestamp(calFin.time))
-                    .get().await()
-
-                var ingresos = 0.0
-                var pedidosCont = 0
-                var canceladosCont = 0
-                val conteoProductos = mutableMapOf<String, Int>()
-                val metodosMap = mutableMapOf<String, Double>()
-
-                // Inicializar conteo con 0 para todos los productos del catálogo
-                todosLosProductos.values.forEach { nombre ->
-                    conteoProductos[nombre] = 0
-                }
-
-                for (doc in snapshotPedidos.documents) {
-                    val estado = doc.getString("estado")
-                    if (estado == "PAGADO") {
-                        val total = doc.getDouble("total") ?: 0.0
-                        ingresos += total
-                        pedidosCont++
-
-                        val metodoRaw = doc.getString("metodoPago") ?: "EFECTIVO"
-                        val metodoEnum = MetodoPago.fromString(metodoRaw)
-                        val metodoNombre = metodoEnum?.valor ?: metodoRaw
-                        metodosMap[metodoNombre] = (metodosMap[metodoNombre] ?: 0.0) + total
-                            
-                        val detalles = doc.get("detalles") as? List<Map<String, Any>>
-                        detalles?.forEach { det ->
-                            val nombre = det["nombreProducto"] as? String ?: "Desconocido"
-                            val cant = (det["cantidad"] as? Long)?.toInt() ?: 0
-                            conteoProductos[nombre] = (conteoProductos[nombre] ?: 0) + cant
-                        }
-                    } else if (estado == "CANCELADO") {
-                        canceladosCont++
-                    }
-                }
-
-                // 3. Obtener cierres de caja para egresos
-                val snapshotCierres = firestore.collection("cierres_caja")
-                    .whereGreaterThanOrEqualTo("fechaCierre", Timestamp(calInicio.time))
-                    .whereLessThanOrEqualTo("fechaCierre", Timestamp(calFin.time))
-                    .get().await()
+                val data = pedidoRepository.obtenerReporteNegocio(fechaInicioMillis, fechaFinMillis)
                 
-                var egresosSum = 0.0
-                for (doc in snapshotCierres.documents) {
-                    egresosSum += doc.getDouble("egresos") ?: 0.0
-                }
+                val ingresos = data["totalIngresos"] as Double
+                val pedidosCont = data["totalPedidos"] as Int
+                val canceladosCont = data["totalCancelados"] as Int
+                val egresosSum = data["totalEgresos"] as Double
+                val conteoProductos = data["conteoProductos"] as Map<String, Int>
+                val metodosMap = data["ventasPorMetodo"] as Map<String, Double>
 
                 _totalIngresos.value = ingresos
                 _totalPedidos.value = pedidosCont
@@ -134,19 +79,16 @@ class ReportesNegocioViewModel : ViewModel() {
                 val allMappedProducts = conteoProductos.entries
                     .map { ProductoEstadistica(it.key, it.value, it.value.toFloat() / maxUnidades) }
 
-                // Top 10: Los más vendidos
                 _topProductos.value = allMappedProducts
                     .filter { it.cantidadVendida > 0 }
                     .sortedByDescending { it.cantidadVendida }
                     .take(10)
 
-                // Bottom 10: Los que tienen 0 ventas o las cantidades más bajas
                 _bottomProductos.value = allMappedProducts
                     .sortedBy { it.cantidadVendida }
                     .take(10)
 
             } catch (e: Exception) {
-                Log.e("ReportesNegocioVM", "Error: ${e.message}")
                 _error.value = "Error al conectar con el servidor."
             } finally {
                 _isLoading.value = false

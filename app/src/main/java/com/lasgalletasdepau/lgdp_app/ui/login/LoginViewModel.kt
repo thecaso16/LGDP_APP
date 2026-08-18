@@ -4,14 +4,12 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
-import com.lasgalletasdepau.lgdp_app.data.local.entity.UsuarioEntity
-import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
+import com.lasgalletasdepau.lgdp_app.data.repository.UsuarioRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.domain.repository.UsuarioRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 // Representación de los estados por los que pasa la pantalla
 sealed class LoginState {
@@ -31,8 +29,8 @@ sealed class ResetPasswordState {
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
     private val appDao = AppDatabase.getDatabase(application).appDao()
+    private val usuarioRepository: UsuarioRepository = UsuarioRepositoryImpl(appDao, context = application)
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState
@@ -50,47 +48,22 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             val currentUser = auth.currentUser
             if (currentUser != null) {
                 // Verificamos si el usuario en Room coincide con el de Firebase
-                val localUser = appDao.obtenerUsuarioPorId(currentUser.uid)
-                if (localUser != null) {
-                    // Nos aseguramos de que no haya otros usuarios residuales
-                    appDao.suplantarUsuario(localUser)
-                    _loginState.value = LoginState.Success(localUser.rol ?: "Trabajador")
+                val localUser = usuarioRepository.obtenerUsuarioLogueadoSync()
+                if (localUser != null && localUser.id == currentUser.uid) {
+                    _loginState.value = LoginState.Success(localUser.rol)
                 } else {
                     // Si no está en Room pero sí en Firebase, lo recuperamos
-                    recuperarDatosUsuario(currentUser.uid)
+                    val user = usuarioRepository.recuperarDatosUsuarioRemoto(currentUser.uid)
+                    if (user != null) {
+                        usuarioRepository.loginLocal(user)
+                        _loginState.value = LoginState.Success(user.rol)
+                    } else {
+                        _loginState.value = LoginState.Idle
+                    }
                 }
             } else {
                 _loginState.value = LoginState.Idle
             }
-        }
-    }
-
-    private suspend fun recuperarDatosUsuario(uid: String) {
-        try {
-            val document = firestore.collection("usuarios").document(uid).get().await()
-            if (document.exists()) {
-                val rol = document.getString("rol") ?: "Trabajador"
-                val nombres = document.getString("nombres")
-                val apellidos = document.getString("apellidos")
-                val email = document.getString("email")
-                val dni = document.getString("dni")
-
-                val newUser = UsuarioEntity(
-                    uid = uid,
-                    email = email,
-                    nombres = nombres,
-                    apellidos = apellidos,
-                    dni = dni,
-                    rol = rol,
-                    activo = true
-                )
-                
-                // Limpiar y guardar el nuevo usuario
-                appDao.suplantarUsuario(newUser)
-                _loginState.value = LoginState.Success(rol)
-            }
-        } catch (e: Exception) {
-            _loginState.value = LoginState.Error("Error al recuperar sesión: ${e.message}")
         }
     }
 
@@ -102,46 +75,23 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             _loginState.value = LoginState.Loading
-            try {
-                // 1. Intentar ingresar con Firebase Auth
-                val authResult = auth.signInWithEmailAndPassword(correo, contrasena).await()
-                val uid = authResult.user?.uid
-
-                if (uid != null) {
-                    // 2. Buscar el rol y datos en Firestore
-                    val document = firestore.collection("usuarios").document(uid).get().await()
-
-                    if (document.exists()) {
-                        val rolObtenido = document.getString("rol") ?: "Trabajador"
-                        
-                        val userToSave = UsuarioEntity(
-                            uid = uid,
-                            email = correo,
-                            nombres = document.getString("nombres"),
-                            apellidos = document.getString("apellidos"),
-                            dni = document.getString("dni"),
-                            rol = rolObtenido,
-                            activo = true
-                        )
-
-                        // 3. Persistencia Local en Room (Limpiando previos)
-                        appDao.suplantarUsuario(userToSave)
-
-                        _loginState.value = LoginState.Success(rolObtenido)
-                    } else {
-                        _loginState.value = LoginState.Error("El usuario no está registrado en la base de datos.")
+            android.util.Log.d("LoginVM", "Intentando iniciar sesión para: $correo")
+            val result = usuarioRepository.loginRemoto(correo, contrasena)
+            result.fold(
+                onSuccess = { user ->
+                    android.util.Log.d("LoginVM", "Login exitoso, Rol: ${user.rol}")
+                    _loginState.value = LoginState.Success(user.rol)
+                },
+                onFailure = { e ->
+                    android.util.Log.e("LoginVM", "Error en loginRemoto: ${e.message}")
+                    val mensajeError = when {
+                        e.message?.contains("password", ignoreCase = true) == true -> "Contraseña incorrecta."
+                        e.message?.contains("user", ignoreCase = true) == true -> "Usuario no encontrado."
+                        else -> "Error: ${e.localizedMessage ?: "Credenciales inválidas o error de conexión."}"
                     }
-                } else {
-                    _loginState.value = LoginState.Error("No se pudo obtener el identificador del usuario.")
+                    _loginState.value = LoginState.Error(mensajeError)
                 }
-            } catch (e: Exception) {
-                val mensajeError = when {
-                    e.message?.contains("password", ignoreCase = true) == true -> "Contraseña incorrecta."
-                    e.message?.contains("user", ignoreCase = true) == true -> "Usuario no encontrado."
-                    else -> "Credenciales inválidas o error de conexión."
-                }
-                _loginState.value = LoginState.Error(mensajeError)
-            }
+            )
         }
     }
 
@@ -153,12 +103,11 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             _resetPasswordState.value = ResetPasswordState.Loading
-            try {
-                auth.sendPasswordResetEmail(email).await()
-                _resetPasswordState.value = ResetPasswordState.Success
-            } catch (e: Exception) {
-                _resetPasswordState.value = ResetPasswordState.Error(e.localizedMessage ?: "Error al enviar correo.")
-            }
+            val result = usuarioRepository.enviarCorreoRecuperacion(email)
+            result.fold(
+                onSuccess = { _resetPasswordState.value = ResetPasswordState.Success },
+                onFailure = { e -> _resetPasswordState.value = ResetPasswordState.Error(e.localizedMessage ?: "Error al enviar correo.") }
+            )
         }
     }
 
@@ -168,9 +117,8 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     fun cerrarSesion() {
         _loginState.value = LoginState.Idle
-        auth.signOut()
         viewModelScope.launch {
-            appDao.cerrarSesionLocal()
+            usuarioRepository.cerrarSesion()
         }
     }
 

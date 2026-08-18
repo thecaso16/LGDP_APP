@@ -4,12 +4,10 @@ import android.app.Application
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
 import com.lasgalletasdepau.lgdp_app.data.local.dao.AppDao
 import com.lasgalletasdepau.lgdp_app.data.local.entity.UsuarioEntity
-import com.lasgalletasdepau.lgdp_app.domain.model.RolUsuario
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.Dispatchers

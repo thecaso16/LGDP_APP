@@ -23,7 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.lasgalletasdepau.lgdp_app.data.local.entity.ProductoEntity
+import com.lasgalletasdepau.lgdp_app.domain.model.Producto
 import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -138,9 +138,9 @@ fun PedidoScreen(
                             items(productosFiltrados) { producto ->
                                 FilaProductoCatalogo(
                                     producto = producto,
-                                    cantidad = carrito[producto.productoId]?.cantidad ?: 0,
+                                    cantidad = carrito[producto.id]?.cantidad ?: 0,
                                     onAumentar = { viewModel.agregarProducto(producto) },
-                                    onRestar = { viewModel.quitarProducto(producto.productoId) }
+                                    onRestar = { viewModel.quitarProducto(producto.id) }
                                 )
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 0.5.dp)
                             }
@@ -246,7 +246,7 @@ fun CabeceraInformacion(mozo: String, mesa: String, cliente: String, fecha: Stri
 
 @Composable
 fun FilaProductoCatalogo(
-    producto: ProductoEntity,
+    producto: Producto,
     cantidad: Int,
     onAumentar: () -> Unit,
     onRestar: () -> Unit
@@ -263,7 +263,7 @@ fun FilaProductoCatalogo(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    producto.nombre ?: "", 
+                    producto.nombre, 
                     style = MaterialTheme.typography.bodyLarge, 
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

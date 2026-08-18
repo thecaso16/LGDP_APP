@@ -6,10 +6,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.lasgalletasdepau.lgdp_app.data.local.dao.AppDao
 import com.lasgalletasdepau.lgdp_app.data.local.entity.*
-import com.lasgalletasdepau.lgdp_app.domain.model.EstadoMesa
-import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
-import com.lasgalletasdepau.lgdp_app.domain.model.MetodoPago
-import com.lasgalletasdepau.lgdp_app.domain.model.TipoPedido
+import com.lasgalletasdepau.lgdp_app.data.mapper.*
+import com.lasgalletasdepau.lgdp_app.domain.model.*
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 
@@ -110,44 +108,23 @@ class SyncManager(
     private suspend fun bajarMesasDeFirebase() {
         val snapshot = firestore.collection("mesas").get().await()
         val mesasNube = snapshot.documents.mapNotNull { doc ->
-            val id = doc.getLong("id")?.toInt() ?: return@mapNotNull null
-            val numero = "Mesa ${id.toString().padStart(2, '0')}"
-            val estadoString = doc.getString("estado") ?: "LIBRE"
-            val cliente = doc.getString("clienteActivo")
-            val estadoEnum = try { EstadoMesa.valueOf(estadoString) } catch (e: Exception) { EstadoMesa.LIBRE }
-
-            MesaEntity(id = id, numero = numero, estado = estadoEnum, clienteActivo = cliente, sincronizado = true)
+            doc.toObject(MesaFirestore::class.java)?.toDomain()?.toEntity(sincronizado = true)
         }
         if (mesasNube.isNotEmpty()) appDao.inicializarMesas(mesasNube)
     }
 
     private suspend fun bajarCategoriasDeFirebase() {
         val snapshot = firestore.collection("categorias").get().await()
-        val categorias = snapshot.documents.map { doc ->
-            CategoriaEntity(id = doc.id, nombre = doc.getString("nombre"))
+        val categorias = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(CategoriaFirestore::class.java)?.toDomain()?.toEntity()
         }
         if (categorias.isNotEmpty()) appDao.insertarCategorias(categorias)
     }
 
     private suspend fun bajarProductosDeFirebase() {
         val snapshot = firestore.collection("productos").get().await()
-        val productos = snapshot.documents.map { doc ->
-            ProductoEntity(
-                productoId = doc.id,
-                nombre = doc.getString("nombre"),
-                descripcion = doc.getString("descripcion"),
-                imagen = doc.getString("imagen"),
-                precio = doc.getDouble("precio") ?: 0.0,
-                stock = doc.getLong("stock")?.toInt() ?: 0,
-                controlaStock = doc.getBoolean("controlaStock") ?: false,
-                categoriaId = doc.getString("categoriaId"),
-                recomendado = doc.getBoolean("recomendado") ?: false,
-                estaDisponible = doc.getBoolean("estaDisponible") ?: true,
-                activo = doc.getBoolean("activo") ?: true,
-                sincronizado = true,
-                ultimaActualizacion = System.currentTimeMillis(),
-                operacionPendiente = null
-            )
+        val productos = snapshot.documents.mapNotNull { doc ->
+            doc.toObject(ProductoFirestore::class.java)?.toDomain()?.toEntity(sincronizado = true)
         }
         if (productos.isNotEmpty()) appDao.insertarProductos(productos)
     }
@@ -155,16 +132,8 @@ class SyncManager(
     private suspend fun bajarInsumosDeFirebase() {
         try {
             val snapshot = firestore.collection("insumos").get().await()
-            val insumos = snapshot.documents.map { doc ->
-                InsumoEntity(
-                    id = doc.id,
-                    nombre = doc.getString("nombre") ?: "",
-                    cantidadActual = doc.getDouble("cantidadActual") ?: 0.0,
-                    cantidadMinima = doc.getDouble("cantidadMinima") ?: 0.0,
-                    unidadMedida = doc.getString("unidadMedida") ?: "Kg",
-                    categoria = doc.getString("categoria"),
-                    sincronizado = true
-                )
+            val insumos = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(InsumoFirestore::class.java)?.toDomain()?.toEntity(sincronizado = true)
             }
             if (insumos.isNotEmpty()) appDao.insertarInsumos(insumos)
         } catch (e: Exception) {
@@ -175,12 +144,8 @@ class SyncManager(
     private suspend fun bajarRelacionesInsumosDeFirebase() {
         try {
             val snapshot = firestore.collection("producto_insumos").get().await()
-            val relaciones = snapshot.documents.map { doc ->
-                ProductoInsumoEntity(
-                    productoId = doc.getString("productoId") ?: "",
-                    insumoId = doc.getString("insumoId") ?: "",
-                    cantidadRequerida = doc.getDouble("cantidadRequerida") ?: 0.0
-                )
+            val relaciones = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(ProductoInsumoFirestore::class.java)?.toDomain()?.toEntity()
             }
             if (relaciones.isNotEmpty()) appDao.insertarProductoInsumos(relaciones)
         } catch (e: Exception) {
@@ -194,75 +159,50 @@ class SyncManager(
                 .whereIn("estado", listOf("PENDIENTE", "PREPARADO"))
                 .get().await()
 
-            val cacheUsuarios = mutableMapOf<String, String>()
-
             for (doc in snapshot.documents) {
                 val pedidoId = doc.id
                 val local = appDao.obtenerPedidoPorId(pedidoId)
 
                 if (local == null || local.sincronizado) {
-                    val firebaseTimestamp = doc.getTimestamp("fecha")
-                    val firebaseFecha = firebaseTimestamp?.toDate()?.time ?: 0L
-
-                    val uid = doc.getString("usuarioId")
-                    var nombre = doc.getString("usuarioNombre")
-
-                    if (nombre.isNullOrBlank() && uid != null) {
-                        nombre = cacheUsuarios.getOrPut(uid) {
-                            try {
-                                // 1. Intentar local
-                                val userLocal = appDao.obtenerUsuarioPorId(uid)
-                                if (userLocal != null) {
-                                    "${userLocal.nombres} ${userLocal.apellidos}".trim()
-                                } else {
-                                    // 2. Intentar Firestore
-                                    val userDoc = firestore.collection("usuarios").document(uid).get().await()
-                                    val n = userDoc.getString("nombres") ?: ""
-                                    val a = userDoc.getString("apellidos") ?: ""
-                                    "$n $a".trim().ifEmpty { "Trabajador" }
-                                }
-                            } catch (e: Exception) { "Trabajador" }
-                        }
+                    val pedido = doc.toObject(PedidoFirestore::class.java)?.toDomain() ?: continue
+                    
+                    // Asegurar que el nombre del usuario esté presente si falta
+                    var nombreUsuario = pedido.usuarioNombre
+                    if (nombreUsuario.isNullOrBlank() && pedido.usuarioId != null) {
+                        nombreUsuario = obtenerNombreUsuarioSync(pedido.usuarioId)
                     }
 
-                    val pedido = PedidoEntity(
-                        pedidoId = pedidoId,
-                        numeroPedido = doc.getLong("numeroPedido")?.toInt() ?: 0,
-                        fecha = firebaseFecha,
-                        estado = doc.getString("estado")?.let { try { EstadoPedido.valueOf(it) } catch(e: Exception) { null } },
-                        tipoPedido = doc.getString("tipoPedido")?.let { try { TipoPedido.valueOf(it) } catch(e: Exception) { TipoPedido.PARA_LLEVAR } } ?: TipoPedido.PARA_LLEVAR,
-                        mesaId = doc.getLong("mesaId")?.toInt(),
-                        metodoPago = MetodoPago.fromString(doc.getString("metodoPago")),
-                        nombreCliente = doc.getString("nombreCliente"),
-                        total = doc.getDouble("total") ?: 0.0,
-                        usuarioId = uid,
-                        usuarioNombre = nombre,
-                        notas = doc.getString("notas"),
-                        cajaId = doc.getString("cajaId"),
-                        sincronizado = true
-                    )
-                    appDao.insertarPedido(pedido)
-
-                    val detallesNube = doc.get("detalles") as? List<Map<String, Any>>
-                    if (detallesNube != null) {
-                        val detallesEntities = detallesNube.map { map ->
-                            PedidoDetalleEntity(
-                                pedidoId = pedidoId,
-                                productoId = map["productoId"] as? String,
-                                nombreProducto = map["nombreProducto"] as? String,
-                                cantidad = (map["cantidad"] as? Long)?.toInt() ?: 0,
-                                precioUnitario = (map["precioUnitario"] as? Number)?.toDouble() ?: 0.0,
-                                comentario = null
-                            )
-                        }
-                        appDao.eliminarDetallesPorPedido(pedidoId)
-                        appDao.insertarDetallesPedido(detallesEntities)
+                    val pedidoFinal = pedido.copy(usuarioNombre = nombreUsuario)
+                    appDao.insertarPedido(pedidoFinal.toEntity(sincronizado = true))
+                    
+                    // Insertar detalles
+                    val detallesEntities = pedidoFinal.detalles.map { 
+                        it.toEntity(pedidoId)
                     }
+                    appDao.eliminarDetallesPorPedido(pedidoId)
+                    appDao.insertarDetallesPedido(detallesEntities)
                 }
             }
         } catch (e: Exception) {
             Log.e("SyncManager", "Error bajando pedidos: ${e.message}")
         }
+    }
+
+    private suspend fun obtenerNombreUsuarioSync(uid: String): String {
+        return try {
+            val userLocal = appDao.obtenerUsuarioPorId(uid)
+            if (userLocal != null) {
+                "${userLocal.nombres} ${userLocal.apellidos}".trim()
+            } else {
+                val userDoc = firestore.collection("usuarios").document(uid).get().await()
+                val user = userDoc.toObject(UsuarioFirestore::class.java)?.toDomain()
+                if (user != null) {
+                    "${user.nombres} ${user.apellidos}".trim().ifEmpty { "Trabajador" }
+                } else {
+                    "Trabajador"
+                }
+            }
+        } catch (e: Exception) { "Trabajador" }
     }
 
     private suspend fun bajarCajaAbiertaDeFirebase() {
@@ -274,17 +214,11 @@ class SyncManager(
 
             if (!snapshot.isEmpty) {
                 val doc = snapshot.documents[0]
-                val sesion = CajaSesionEntity(
-                    cajaId = doc.id,
-                    usuarioCajeroId = doc.getString("usuarioCajeroId") ?: doc.getString("usuarioId") ?: "",
-                    nombreCajero = doc.getString("usuarioCajeroNombre") ?: "Desconocido",
-                    fechaApertura = doc.getTimestamp("fechaApertura")?.toDate()?.time ?: System.currentTimeMillis(),
-                    montoApertura = doc.getDouble("montoApertura") ?: 0.0,
-                    estado = "ABIERTA",
-                    sincronizado = true
-                )
-                appDao.limpiarSesionesLocales()
-                appDao.abrirCajaLocal(sesion)
+                val caja = doc.toObject(CajaSesionFirestore::class.java)?.toDomain()
+                if (caja != null) {
+                    appDao.limpiarSesionesLocales()
+                    appDao.abrirCajaLocal(caja.toEntity(sincronizado = true))
+                }
             } else {
                 appDao.limpiarSesionesLocales()
             }
@@ -303,67 +237,22 @@ class SyncManager(
                 .whereLessThanOrEqualTo("fecha", endTimestamp)
                 .get().await()
 
-            val cacheUsuarios = mutableMapOf<String, String>()
-
             for (doc in snapshot.documents) {
                 val pedidoId = doc.id
-                val firebaseTimestamp = doc.getTimestamp("fecha")
-                val firebaseFecha = firebaseTimestamp?.toDate()?.time ?: 0L
+                val pedido = doc.toObject(PedidoFirestore::class.java)?.toDomain() ?: continue
 
-                val uid = doc.getString("usuarioId")
-                var nombre = doc.getString("usuarioNombre")
-
-                if (nombre.isNullOrBlank() && uid != null) {
-                    nombre = cacheUsuarios.getOrPut(uid) {
-                        try {
-                            // 1. Intentar local
-                            val userLocal = appDao.obtenerUsuarioPorId(uid)
-                            if (userLocal != null) {
-                                "${userLocal.nombres} ${userLocal.apellidos}".trim()
-                            } else {
-                                // 2. Intentar Firestore
-                                val userDoc = firestore.collection("usuarios").document(uid).get().await()
-                                val n = userDoc.getString("nombres") ?: ""
-                                val a = userDoc.getString("apellidos") ?: ""
-                                "$n $a".trim().ifEmpty { "Trabajador" }
-                            }
-                        } catch (e: Exception) { "Trabajador" }
-                    }
+                // Asegurar que el nombre del usuario esté presente if missing
+                var nombreUsuario = pedido.usuarioNombre
+                if (nombreUsuario.isNullOrBlank() && pedido.usuarioId != null) {
+                    nombreUsuario = obtenerNombreUsuarioSync(pedido.usuarioId)
                 }
 
-                val pedido = PedidoEntity(
-                    pedidoId = pedidoId,
-                    numeroPedido = doc.getLong("numeroPedido")?.toInt() ?: 0,
-                    fecha = firebaseFecha,
-                    estado = doc.getString("estado")?.let { try { EstadoPedido.valueOf(it) } catch(e: Exception) { null } },
-                    tipoPedido = doc.getString("tipoPedido")?.let { try { TipoPedido.valueOf(it) } catch(e: Exception) { TipoPedido.PARA_LLEVAR } } ?: TipoPedido.PARA_LLEVAR,
-                    mesaId = doc.getLong("mesaId")?.toInt(),
-                    metodoPago = MetodoPago.fromString(doc.getString("metodoPago")),
-                    nombreCliente = doc.getString("nombreCliente"),
-                    total = doc.getDouble("total") ?: 0.0,
-                    usuarioId = uid,
-                    usuarioNombre = nombre,
-                    notas = doc.getString("notas"),
-                    cajaId = doc.getString("cajaId"),
-                    sincronizado = true
-                )
-                appDao.insertarPedido(pedido)
+                val pedidoFinal = pedido.copy(usuarioNombre = nombreUsuario)
+                appDao.insertarPedido(pedidoFinal.toEntity(sincronizado = true))
 
-                val detallesNube = doc.get("detalles") as? List<Map<String, Any>>
-                if (detallesNube != null) {
-                    val detallesEntities = detallesNube.map { map ->
-                        PedidoDetalleEntity(
-                            pedidoId = pedidoId,
-                            productoId = map["productoId"] as? String,
-                            nombreProducto = map["nombreProducto"] as? String,
-                            cantidad = (map["cantidad"] as? Long)?.toInt() ?: 0,
-                            precioUnitario = (map["precioUnitario"] as? Number)?.toDouble() ?: 0.0,
-                            comentario = null
-                        )
-                    }
-                    appDao.eliminarDetallesPorPedido(pedidoId)
-                    appDao.insertarDetallesPedido(detallesEntities)
-                }
+                val detallesEntities = pedidoFinal.detalles.map { it.toEntity(pedidoId) }
+                appDao.eliminarDetallesPorPedido(pedidoId)
+                appDao.insertarDetallesPedido(detallesEntities)
             }
         } catch (e: Exception) {
             Log.e("SyncManager", "Error bajando historial: ${e.message}")

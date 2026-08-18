@@ -1,7 +1,6 @@
 package com.lasgalletasdepau.lgdp_app.ui.pedidos
 
 import android.content.Intent
-import android.graphics.pdf.PdfDocument
 import com.lasgalletasdepau.lgdp_app.utils.PdfReportGenerator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,17 +19,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.lasgalletasdepau.lgdp_app.domain.model.EstadoPedido
-import com.lasgalletasdepau.lgdp_app.ui.pedidos.CajaViewModel
-import com.lasgalletasdepau.lgdp_app.ui.pedidos.ModoHistorial
-import com.lasgalletasdepau.lgdp_app.ui.pedidos.PedidoConDetalles
-import com.lasgalletasdepau.lgdp_app.ui.pedidos.ReportesTrabajadoresViewModel
+import com.lasgalletasdepau.lgdp_app.domain.model.PedidoConDetalles
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat

@@ -1,45 +1,29 @@
 package com.lasgalletasdepau.lgdp_app.ui.admin
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import com.lasgalletasdepau.lgdp_app.data.local.AppDatabase
+import com.lasgalletasdepau.lgdp_app.data.remote.SyncManager
+import com.lasgalletasdepau.lgdp_app.data.repository.ProductoRepositoryImpl
+import com.lasgalletasdepau.lgdp_app.domain.model.Categoria
+import com.lasgalletasdepau.lgdp_app.domain.repository.ProductoRepository
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-data class Categoria(
-    val id: String = "",
-    val nombre: String = ""
-)
+class CategoriasViewModel(application: Application) : AndroidViewModel(application) {
+    private val appDao = AppDatabase.getDatabase(application).appDao()
+    private val syncManager = SyncManager.getInstance(application)
+    private val productoRepository: ProductoRepository = ProductoRepositoryImpl(appDao, syncManager)
 
-class CategoriasViewModel : ViewModel() {
-    private val firestore = FirebaseFirestore.getInstance()
-
-    private val _categorias = MutableStateFlow<List<Categoria>>(emptyList())
-    val categorias: StateFlow<List<Categoria>> = _categorias
-
-    init {
-        obtenerCategorias()
-    }
-
-    fun obtenerCategorias() {
-        viewModelScope.launch {
-            try {
-                val snapshot = firestore.collection("categorias").get().await()
-                val lista = snapshot.documents.map { doc ->
-                    Categoria(id = doc.id, nombre = doc.getString("nombre") ?: "")
-                }
-                _categorias.value = lista
-            } catch (e: Exception) {}
-        }
-    }
+    val categorias: StateFlow<List<Categoria>> = productoRepository.obtenerCategorias()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun agregarCategoria(nombre: String) {
         viewModelScope.launch {
             try {
-                firestore.collection("categorias").add(mapOf("nombre" to nombre)).await()
-                obtenerCategorias()
+                productoRepository.agregarCategoria(nombre)
+                productoRepository.sincronizarCatalogo()
             } catch (e: Exception) {}
         }
     }

@@ -24,11 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalConfiguration
-import com.lasgalletasdepau.lgdp_app.data.local.entity.ProductoInsumoEntity
 import com.lasgalletasdepau.lgdp_app.domain.model.Producto
-import com.lasgalletasdepau.lgdp_app.ui.admin.CategoriasViewModel
-import com.lasgalletasdepau.lgdp_app.ui.admin.GestionCatalogoViewModel
-import java.util.*
+import com.lasgalletasdepau.lgdp_app.domain.model.ProductoInsumo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +61,7 @@ fun GestionCatalogoScreen(
     var mostrarConfirmarEliminar by remember { mutableStateOf(false) }
 
     var mostrarDialogoVinculos by remember { mutableStateOf<Producto?>(null) }
-    var vinculosActuales by remember { mutableStateOf<List<ProductoInsumoEntity>>(emptyList()) }
+    var vinculosActuales by remember { mutableStateOf<List<ProductoInsumo>>(emptyList()) }
     var insumoParaVincularId by remember { mutableStateOf("") }
     var cantidadVinculo by remember { mutableStateOf("") }
     val insumosDisponibles by viewModel.insumosDisponibles.collectAsState()
@@ -120,7 +117,7 @@ fun GestionCatalogoScreen(
                         FilterChip(
                             selected = filtroCategoriaId == cat.id, 
                             onClick = { filtroCategoriaId = cat.id }, 
-                            label = { Text(cat.nombre) },
+                            label = { Text(cat.nombre ?: "") },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -172,7 +169,7 @@ fun GestionCatalogoScreen(
                                         FilterChip(
                                             selected = nuevaCatId == cat.id, 
                                             onClick = { nuevaCatId = cat.id }, 
-                                            label = { Text(cat.nombre) },
+                                            label = { Text(cat.nombre ?: "") },
                                             colors = FilterChipDefaults.filterChipColors(
                                                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                                                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary
@@ -216,14 +213,18 @@ fun GestionCatalogoScreen(
                                     val s = nuevoStock.toIntOrNull() ?: 0
                                     viewModel.guardarProducto(
                                         Producto(
+                                            id = "",
                                             nombre = nuevoNombre, 
                                             descripcion = nuevoDescripcion,
                                             precio = p, 
                                             categoriaId = nuevaCatId, 
                                             stock = s, 
                                             controlaStock = controlaStock,
+                                            estaDisponible = true,
+                                            imagen = null,
                                             recomendado = nuevoRecomendado,
-                                            activo = true
+                                            activo = true,
+                                            ultimaActualizacion = null
                                         )
                                     ) {
                                         if (it) { 
@@ -247,10 +248,10 @@ fun GestionCatalogoScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable {
                         productoSeleccionado = prod
                         editNombre = prod.nombre
-                        editDescripcion = prod.descripcion
+                        editDescripcion = prod.descripcion ?: ""
                         editPrecio = prod.precio.toString()
                         editStock = prod.stock.toString()
-                        editCatId = prod.categoriaId
+                        editCatId = prod.categoriaId ?: ""
                         editControlaStock = prod.controlaStock
                         editDisponible = prod.estaDisponible
                         editRecomendado = prod.recomendado
@@ -346,7 +347,7 @@ fun GestionCatalogoScreen(
                                 FilterChip(
                                     selected = editCatId == cat.id, 
                                     onClick = { editCatId = cat.id }, 
-                                    label = { Text(cat.nombre) },
+                                    label = { Text(cat.nombre ?: "") },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = MaterialTheme.colorScheme.primary,
                                         selectedLabelColor = MaterialTheme.colorScheme.onPrimary
